@@ -119,11 +119,30 @@ public class Auto extends LinearOpMode{
     private void score() {
        outtake.setPower(1);
        if(Objects.equals(MOTIFPATTERN, "PPG")){
-           
+           if(Objects.equals(artifactOrder, "PPG"){
+               
+           }else if(Objects.equals(artifactOrder, "PGP")){
+               
+           }else if(Objects.equals(artifactOrder, "GPP")){
+               
+           }
        }else if(Objects.equals(MOTIFPATTERN, "PGP")){
+            if(Objects.equals(artifactOrder, "PPG"){
+               
+           }else if(Objects.equals(artifactOrder, "PGP")){
+               
+           }else if(Objects.equals(artifactOrder, "GPP")){
+               
+           }
            
        }else if(Objects.equals(MOTIFPATTERN, "GPP")){
-           
+            if(Objects.equals(artifactOrder, "PPG"){
+               
+           }else if(Objects.equals(artifactOrder, "PGP")){
+               
+           }else if(Objects.equals(artifactOrder, "GPP")){
+               
+           }
        }
        
     }
