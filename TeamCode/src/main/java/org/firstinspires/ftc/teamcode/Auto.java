@@ -70,8 +70,9 @@ public class Auto extends LinearOpMode{
             intake2 = (double) 120 /300,
             intake3 = (double) 240 /300,
             outtake2 = (double) 30/300,
-            outtake1 = (double 150/300,
-            outtake3 = (double) 270/300;
+            outtake1 = 150/300,
+            outtake3 = 270/300;
+
             
     @Override
     public void runOpMode() throws InterruptedException {
@@ -119,7 +120,7 @@ public class Auto extends LinearOpMode{
     private void score() {
        outtake.setPower(1);
        if(Objects.equals(MOTIFPATTERN, "PPG")){
-           if(Objects.equals(artifactOrder, "PPG"){
+           if(Objects.equals(artifactOrder, "PPG")){
                
            }else if(Objects.equals(artifactOrder, "PGP")){
                
@@ -127,7 +128,7 @@ public class Auto extends LinearOpMode{
                
            }
        }else if(Objects.equals(MOTIFPATTERN, "PGP")){
-            if(Objects.equals(artifactOrder, "PPG"){
+            if(Objects.equals(artifactOrder, "PPG")){
                
            }else if(Objects.equals(artifactOrder, "PGP")){
                
@@ -136,7 +137,7 @@ public class Auto extends LinearOpMode{
            }
            
        }else if(Objects.equals(MOTIFPATTERN, "GPP")){
-            if(Objects.equals(artifactOrder, "PPG"){
+            if(Objects.equals(artifactOrder, "PPG")){
                
            }else if(Objects.equals(artifactOrder, "PGP")){
                
