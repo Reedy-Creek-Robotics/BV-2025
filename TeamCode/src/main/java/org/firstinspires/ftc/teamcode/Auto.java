@@ -68,9 +68,9 @@ public class Auto extends LinearOpMode{
     double
             intake1 = (double) 0 /300,
             intake2 = (double) 120 /300,
-            intake3 = (double) 240 /300
-            outtake2 = (double) 30/300
-            outtake1 = (double 150/300
+            intake3 = (double) 240 /300,
+            outtake2 = (double) 30/300,
+            outtake1 = (double 150/300,
             outtake3 = (double) 270/300;
             
     @Override
@@ -243,9 +243,9 @@ public class Auto extends LinearOpMode{
                 }
 
         }
-        return Arrays.asList(motif, position);
+        
 
     }
-        return java.util.Collections.emptyList();
+        return Arrays.asList(motif, position);
     }
 }
