@@ -119,7 +119,11 @@ public class Auto extends LinearOpMode{
     private void score() {
        outtake.setPower(1);
        if(Objects.equals(MOTIFPATTERN, "PPG")){
-
+           
+       }else if(Objects.equals(MOTIFPATTERN, "PGP")){
+           
+       }else if(Objects.equals(MOTIFPATTERN, "GPP")){
+           
        }
        
     }
@@ -207,7 +211,7 @@ public class Auto extends LinearOpMode{
         String motif = "unfound";
         Pose position = null;
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        for (AprilTagDetection detection : currentDetections) {
+        for (AprilTagDetection detection: currentDetections) {
             if (detection.metadata != null) {
                 // Only use tags that don't have Obelisk in them
                 if (!detection.metadata.name.contains("Obelisk")) {
