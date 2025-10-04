@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-@Autonomous(name = "Auto with camera")
+@Autonomous(name = "Blue Auto with camera")
 public class Auto extends LinearOpMode{
     private final Position cameraPosition = new Position(DistanceUnit.INCH,
             0, 0, 0, 0);
@@ -53,7 +53,6 @@ public class Auto extends LinearOpMode{
 
     //PP
     private Follower follower;
-    private int pathState;
     static Pose endPose;
 
     private Pose initPos;
@@ -95,6 +94,7 @@ public class Auto extends LinearOpMode{
         visionportal.close();
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(initPos);
+        telemetry.addData("MOTIF",MOTIFPATTERN);
         buildPaths();
         waitForStart();
         transfer.setPosition(0);
@@ -106,28 +106,33 @@ public class Auto extends LinearOpMode{
                 case 1:
                     scoring = true;
                     autoState++;
+                    telemetry.addData("Current action","scoring");
                 case 2:
                     if(!scoring){
                         follower.followPath(grabPickup1);
                         autoState++;
+                        telemetry.addData("Current action","grabbing artifacts");
                     }
                     break;
                 case 3:
                     if(!follower.isBusy()){
                         scoring = true;
                         autoState++;
+                        telemetry.addData("Current action","scoring");
                     }
                     break;
                 case 4:
                     if(!follower.isBusy() && !scoring) {
                         follower.followPath(grabPickup2);
                         autoState++;
+                        telemetry.addData("Current action","grabbing artifacts");
                     }
                     break;
                 case 6:
                     if(!follower.isBusy()){
                         scoring = true;
                         autoState=-1;
+                        telemetry.addData("Current action","scoring");
                     }
                     break;
 
