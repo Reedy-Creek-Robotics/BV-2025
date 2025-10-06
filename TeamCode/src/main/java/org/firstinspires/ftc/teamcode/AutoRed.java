@@ -108,6 +108,7 @@ public class AutoRed extends LinearOpMode {
                     autoState++;
                     telemetry.addData("Current action","scoring");
                 case 2:
+                    artifactOrder = "PPG";
                     if(!scoring){
                         follower.followPath(grabPickup1);
                         autoState++;
@@ -122,6 +123,7 @@ public class AutoRed extends LinearOpMode {
                     }
                     break;
                 case 4:
+                    artifactOrder = "PGP";
                     if(!follower.isBusy() && !scoring) {
                         follower.followPath(grabPickup2);
                         autoState++;

@@ -109,6 +109,7 @@ public class Auto extends LinearOpMode{
                     telemetry.addData("Current action","scoring");
                 case 2:
                     if(!scoring){
+                        artifactOrder = "PPG";
                         follower.followPath(grabPickup1);
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
@@ -122,6 +123,7 @@ public class Auto extends LinearOpMode{
                     }
                     break;
                 case 4:
+                    artifactOrder = "PGP";
                     if(!follower.isBusy() && !scoring) {
                         follower.followPath(grabPickup2);
                         autoState++;
