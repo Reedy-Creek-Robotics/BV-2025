@@ -603,21 +603,21 @@ public class AutoRed extends LinearOpMode {
                     intakeState++;
                     break;
                 case 2:
-                    if (intakeDelay.milliseconds()>250){
+                    if (intakeDelay.milliseconds()>333){
                         transfer.setPosition(intake2);
                         intakeDelay.reset();
                         intakeState++;
                     }
                     break;
                 case 3:
-                    if (intakeDelay.milliseconds()>250){
+                    if (intakeDelay.milliseconds()>333){
                         transfer.setPosition(intake3);
                         intakeDelay.reset();
                         intakeState++;
                     }
                     break;
                 case 4:
-                    if (intakeDelay.milliseconds()>250){
+                    if (intakeDelay.milliseconds()>333){
                         scoring = false;
                         scoringState = 1;
                         leftIntake.setPower(0);
