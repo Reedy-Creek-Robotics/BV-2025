@@ -46,9 +46,9 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
+//import androidx.annotation.NonNull;
+//import androidx.annotation.Nullable;
+ import androidx.annotation.StringRes;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -82,6 +82,7 @@ import com.qualcomm.ftcrobotcontroller.BuildConfig;
 import com.qualcomm.ftcrobotcontroller.R;
 import com.qualcomm.hardware.HardwareFactory;
 import com.qualcomm.robotcore.eventloop.EventLoopManager;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.FtcRobotControllerServiceState;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegister;
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants;
@@ -125,6 +126,8 @@ import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 import org.firstinspires.ftc.robotcore.internal.webserver.RobotControllerWebInfo;
 import org.firstinspires.ftc.robotserver.internal.programmingmode.ProgrammingModeManager;
 import org.firstinspires.inspection.RcInspectionActivity;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.threeten.bp.YearMonth;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -132,7 +135,7 @@ import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
+@Disabled
 @SuppressWarnings("WeakerAccess")
 public class FtcRobotControllerActivity extends Activity
   {
@@ -673,7 +676,7 @@ public class FtcRobotControllerActivity extends Activity
 
     updateUIAndRequestRobotSetup();
     programmingModeManager.setState(new FtcRobotControllerServiceState() {
-      @NonNull
+      @NotNull
       @Override
       public WebServer getWebServer() {
         return service.getWebServer();

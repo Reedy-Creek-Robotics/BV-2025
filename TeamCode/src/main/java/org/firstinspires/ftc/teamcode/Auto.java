@@ -59,7 +59,7 @@ public class Auto extends LinearOpMode{
     public final Pose scorePose = new Pose(60, 85, Math.toRadians(135)); // Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup1Pose = new Pose(19.000, 84.000, Math.toRadians(180)); // Highest (First Set) of Artifacts from the Spike Mark.
     private final Pose pickup2Pose = new Pose(19.000, 60, Math.toRadians(180)); // Middle (Second Set) of Artifacts from the Spike Mark.
-    private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)); // Lowest (Third Set) of Artifacts from the Spike Mark.
+  //  private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
     private PathChain grabPickup1,  grabPickup2;
 
