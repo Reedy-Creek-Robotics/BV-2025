@@ -19,7 +19,7 @@ public class hardwareTest extends LinearOpMode {
 
     DcMotor driveFrontLeft, driveFrontRight, driveBackRight, driveBackLeft, outtake, leftIntake, rightIntake;
 
-    Servo transfer, outtakeHammer;
+    Servo transfer;
     IMU imu;
     private Follower follower;
     PathChain score;
@@ -30,18 +30,21 @@ public class hardwareTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         initHardware();
+        waitForStart();
         while(opModeIsActive()){
             switch(state){
                 case 0:
-                    driveBackLeft.setPower(1);
-                    driveBackRight.setPower(1);
-                    driveFrontLeft.setPower(1);
-                    driveFrontRight.setPower(1);
-                    buttonDebounce.reset();
+//                    driveBackLeft.setPower(1);
+//                    driveBackRight.setPower(1);
+//                    driveFrontLeft.setPower(1);
+//                    driveFrontRight.setPower(1);
+//                    buttonDebounce.reset();
+
                     state++;
                     break;
                 case 1:
                     if(buttonDebounce.seconds()>5){
+
                         driveBackLeft.setPower(0);
                         driveBackRight.setPower(0);
                         driveFrontLeft.setPower(0);
@@ -52,7 +55,7 @@ public class hardwareTest extends LinearOpMode {
                     buttonDebounce.reset();
                     }
                     break;
-                case 3:
+                case 2:
                     if(buttonDebounce.seconds()>5){
                         leftIntake.setPower(0);
                         rightIntake.setPower(0);
@@ -60,8 +63,8 @@ public class hardwareTest extends LinearOpMode {
                         state++;
                         buttonDebounce.reset();
                     }
-                case 4:
-                    if(buttonDebounce.seconds()>5){
+                case 3:
+                    if(buttonDebounce.seconds()>10){
                         outtake.setPower(0);
                     }
 
@@ -72,7 +75,6 @@ public class hardwareTest extends LinearOpMode {
 
     private void initHardware() {
         transfer = hardwareMap.get(Servo.class, "transfer");
-        outtakeHammer = hardwareMap.get(Servo.class, "outtakeHammer");
 
         outtake = hardwareMap.get(DcMotor.class, "outtake");
         outtake.setMode(RUN_WITHOUT_ENCODER);

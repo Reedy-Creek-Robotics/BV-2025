@@ -102,24 +102,24 @@ public class TeleOpDrive extends LinearOpMode {
 
         driveFrontLeft = hardwareMap.get(DcMotor.class,  "driveFrontLeft");
         driveFrontLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontLeft.setMode(RUN_USING_ENCODER);
+        driveFrontLeft.setMode(RUN_WITHOUT_ENCODER);
         driveFrontLeft.setZeroPowerBehavior(BRAKE);
         driveFrontLeft.setDirection(REVERSE);
 
         driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
         driveFrontRight.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontRight.setMode(RUN_USING_ENCODER);
+        driveFrontRight.setMode(RUN_WITHOUT_ENCODER);
         driveFrontRight.setZeroPowerBehavior(BRAKE);
 
         driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
         driveBackLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveBackLeft.setMode(RUN_USING_ENCODER);
+        driveBackLeft.setMode(RUN_WITHOUT_ENCODER);
         driveBackLeft.setZeroPowerBehavior(BRAKE);
         driveBackLeft.setDirection(REVERSE);
 
         driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
         driveBackRight.setMode(STOP_AND_RESET_ENCODER);
-        driveBackRight.setMode(RUN_USING_ENCODER);
+        driveBackRight.setMode(RUN_WITHOUT_ENCODER);
         driveBackRight.setZeroPowerBehavior(BRAKE);
 
         outtakeHammer = hardwareMap.get(Servo.class, "outtakeHammer");
