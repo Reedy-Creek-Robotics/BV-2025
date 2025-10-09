@@ -75,9 +75,9 @@ public class AutoRed extends LinearOpMode {
             intake1 = (double) 0 /300,
             intake2 = (double) 120 /300,
             intake3 = (double) 240 /300,
-            outtake2 = (double) 30/300,
-            outtake1 = (double) 150 /300,
-            outtake3 = (double) 270 /300;
+    outtake2 = (double) 30/300,
+    outtake1 = (double) 150 /300,
+    outtake3 = (double) 270 /300;
     private boolean scoring = false,
             intaking = false;
 
@@ -90,7 +90,7 @@ public class AutoRed extends LinearOpMode {
         setApriltag();
         List results= AprilTagDetection();
         initPos = (Pose) results.get(1);
-        MOTIFPATTERN = results.get(0).toString();
+        Auto.MOTIFPATTERN = results.get(0).toString();
         visionportal.close();
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(initPos);
@@ -139,7 +139,7 @@ public class AutoRed extends LinearOpMode {
                     break;
 
             }
-            endPose=follower.getPose();
+            Auto.endPose=follower.getPose();
         }
     }
 
