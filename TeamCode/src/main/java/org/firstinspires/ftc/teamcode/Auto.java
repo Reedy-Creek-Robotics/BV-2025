@@ -21,6 +21,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Supplier;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -61,7 +62,7 @@ public class Auto extends LinearOpMode{
     private final Pose pickup2Pose = new Pose(19.000, 60, Math.toRadians(180)); // Middle (Second Set) of Artifacts from the Spike Mark.
     private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private PathChain grabPickup1,  grabPickup2;
+    private Supplier<PathChain> grabPickup1,  grabPickup2;
 
     // possible states for Auto
     int autoState = 1,
@@ -110,7 +111,7 @@ public class Auto extends LinearOpMode{
                 case 2:
                     if(!scoring){
                         artifactOrder = "PPG";
-                        follower.followPath(grabPickup1);
+                        follower.followPath(grabPickup1.get());
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -125,7 +126,7 @@ public class Auto extends LinearOpMode{
                 case 4:
                     artifactOrder = "PGP";
                     if(!follower.isBusy() && !scoring) {
-                        follower.followPath(grabPickup2);
+                        follower.followPath(grabPickup2.get());
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -629,7 +630,7 @@ public class Auto extends LinearOpMode{
     }
 
     private void buildPaths() {
-        grabPickup1 = follower.pathBuilder()
+        grabPickup1 =  ()-> follower.pathBuilder()
                 .addPath( new BezierLine(follower::getPose, new Pose(40.5, 84)))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,84), this::runIntake, .9)
@@ -639,7 +640,7 @@ public class Auto extends LinearOpMode{
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                 .build();
 
-        grabPickup2 = follower.pathBuilder()
+        grabPickup2 =()-> follower.pathBuilder()
                 .addPath(new BezierLine(follower::getPose, new Pose(40.5,60)))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,60), this::runIntake, .9)
