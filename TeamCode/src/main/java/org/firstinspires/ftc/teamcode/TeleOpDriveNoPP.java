@@ -43,12 +43,12 @@ public class TeleOpDriveNoPP extends LinearOpMode {
     ElapsedTime scoreDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS),
             intakeDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     double
-            intake1 = (double) 0 /300,
-            intake2 = (double) 120 /300,
-            intake3 = (double) 240 /300,
-            outtake2 = (double) 30/300,
-            outtake1 = (double) 150 /300,
-            outtake3 = (double) 270 /300;
+            intake1 = (double) 295 /1800,
+            intake2 = (double) 424 /1800,
+            intake3 = (double) 547 /1800,
+            outtake2 = (double) 234/1800,
+            outtake1 = (double) 100 /1800,
+            outtake3 = (double) 362 /1800;
     private boolean scoring = false,
             intaking = false;
     private int scoringState=1;
@@ -102,6 +102,7 @@ public class TeleOpDriveNoPP extends LinearOpMode {
         driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
         driveBackLeft.setMode(STOP_AND_RESET_ENCODER);
         driveBackLeft.setMode(RUN_WITHOUT_ENCODER);
+        driveBackLeft.setDirection(REVERSE);
         driveBackLeft.setZeroPowerBehavior(BRAKE);
 
 
