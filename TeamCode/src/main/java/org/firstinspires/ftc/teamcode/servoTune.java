@@ -16,12 +16,12 @@ public class servoTune extends LinearOpMode {
     int i;
     @Override
     public void runOpMode() throws InterruptedException {
-        transfer = hardwareMap.get(Servo.class, "transfer");
+        transfer = hardwareMap.get(Servo.class, "outtakeHammer");
         motor =   hardwareMap.get(DcMotor.class, "outtake");
         motor.setMode(RUN_WITHOUT_ENCODER);
         waitForStart();
         i=100;
-        transfer.setPosition((double) 0 /1800);
+        transfer.setPosition((double) 100 /300);
         while(opModeIsActive()){
             if(gamepad1.dpad_up && buttonDebounce.milliseconds()>100){
                 buttonDebounce.reset();
@@ -32,9 +32,9 @@ public class servoTune extends LinearOpMode {
             }
             telemetry.addData("transfer pos", i);
             updateTelemetry(telemetry);
-            transfer.setPosition((double) i /1800);
+            transfer.setPosition((double) i /300);
             if(gamepad1.a){
-                motor.setPower(1);
+                motor.setPower(gamepad1.right_trigger);
             }else{
                 motor.setPower(0);
             }

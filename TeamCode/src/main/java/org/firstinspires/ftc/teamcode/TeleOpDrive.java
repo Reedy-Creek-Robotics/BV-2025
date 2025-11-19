@@ -57,6 +57,8 @@ public class TeleOpDrive extends LinearOpMode {
             outtake2 = (double) 234/1800,
             outtake1 = (double) 100 /1800,
             outtake3 = (double) 362 /1800;
+    double triggerFire = (double) 174 /300;
+    double triggerRelease = (double) 229 /300;
     private boolean scoring = false,
             intaking = false;
     private int scoringState=1;
@@ -181,7 +183,7 @@ public class TeleOpDrive extends LinearOpMode {
                 case 5:
                 case 8:
                     if(scoreDelay.milliseconds()>50&& !!follower.isBusy()){
-                        outtakeHammer.setPosition((double) 110 /300);
+                        outtakeHammer.setPosition(triggerFire);
                         scoreDelay.reset();
                         scoringState++;
                     }
@@ -190,7 +192,7 @@ public class TeleOpDrive extends LinearOpMode {
                 case 6:
                 case 9:
                     if(scoreDelay.milliseconds()>30){
-                        outtakeHammer.setPosition(.1);
+                        outtakeHammer.setPosition(triggerFire);
                         scoreDelay.reset();
                         scoringState++;
                     }
@@ -231,7 +233,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -240,7 +242,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -283,7 +285,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -292,7 +294,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -331,7 +333,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -340,7 +342,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -381,7 +383,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -390,7 +392,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -429,7 +431,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -438,7 +440,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -478,7 +480,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -487,7 +489,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -529,7 +531,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -538,7 +540,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -577,7 +579,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -586,7 +588,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -625,7 +627,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 5:
                         case 8:
                             if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition((double) 110 /300);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }
@@ -634,7 +636,7 @@ public class TeleOpDrive extends LinearOpMode {
                         case 6:
                         case 9:
                             if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(.1);
+                                outtakeHammer.setPosition(triggerFire);
                                 scoreDelay.reset();
                                 scoringState++;
                             }

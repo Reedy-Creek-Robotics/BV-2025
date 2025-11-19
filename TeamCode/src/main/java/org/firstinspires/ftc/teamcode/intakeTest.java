@@ -30,11 +30,12 @@ public class intakeTest extends LinearOpMode {
         transfer.setPosition(intake1);
         rightIntake.setPower(1);
         leftIntake.setPower(1);
+        waitForStart();
         while(opModeIsActive()){
-            if(gamepad1.dpad_up&&buttonDebounce.milliseconds()>100){
+            if(gamepad1.dpad_up&&buttonDebounce.milliseconds()>250){
                 buttonDebounce.reset();
                 state++;
-            } else if(gamepad1.dpad_down&&buttonDebounce.milliseconds()>100){
+            } else if(gamepad1.dpad_down&&buttonDebounce.milliseconds()>250){
                 buttonDebounce.reset();
                 state--;
             }
@@ -46,6 +47,7 @@ public class intakeTest extends LinearOpMode {
                 transfer.setPosition(intake3);
             }
             telemetry.addData("Intaking: ", state);
+            telemetry.update();
         }
     }
 
