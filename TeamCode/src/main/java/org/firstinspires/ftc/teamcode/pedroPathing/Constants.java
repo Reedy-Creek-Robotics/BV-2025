@@ -37,9 +37,9 @@ public class Constants {
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
     public static FollowerConstants followerConstants = new FollowerConstants()
+            .mass(9.25)
             .lateralZeroPowerAcceleration(-64.118)
-            .forwardZeroPowerAcceleration(-28.17654)
-            ;
+            .forwardZeroPowerAcceleration(-28.17654);
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 

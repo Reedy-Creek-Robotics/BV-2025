@@ -40,7 +40,7 @@ import java.util.Objects;
 @Autonomous(name = "Blue Auto with camera")
 public class Auto extends LinearOpMode{
     private final Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
+            1, 0, 0, 0);
     private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
     DcMotor driveFrontLeft, driveFrontRight, driveBackRight, driveBackLeft, outtake, leftIntake, rightIntake;
@@ -62,7 +62,7 @@ public class Auto extends LinearOpMode{
     private final Pose pickup2Pose = new Pose(19.000, 60, Math.toRadians(180)); // Middle (Second Set) of Artifacts from the Spike Mark.
     private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private Supplier<PathChain> grabPickup1,  grabPickup2;
+    private PathChain grabPickup1,  grabPickup2;
 
     // possible states for Auto
     int autoState = 1,
@@ -113,7 +113,7 @@ public class Auto extends LinearOpMode{
                 case 2:
                     if(!scoring){
                         artifactOrder = "PPG";
-                        follower.followPath(grabPickup1.get());
+                        follower.followPath(grabPickup1);
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -128,7 +128,7 @@ public class Auto extends LinearOpMode{
                 case 4:
                     artifactOrder = "PGP";
                     if(!follower.isBusy() && !scoring) {
-                        follower.followPath(grabPickup2.get());
+                        follower.followPath(grabPickup2);
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -632,23 +632,23 @@ public class Auto extends LinearOpMode{
     }
 
     private void buildPaths() {
-        grabPickup1 =  ()-> follower.pathBuilder()
-                .addPath( new BezierLine(follower::getPose, new Pose(40.5, 84)))
+        grabPickup1 =  follower.pathBuilder()
+                .addPath( new BezierLine(initPos, new Pose(40.5, 84)))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,84), this::runIntake, .9)
-                .addPath( new BezierLine(follower::getPose, pickup1Pose))
+                .addPath( new BezierLine(new Pose(40.5, 84), pickup1Pose))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(follower::getPose, scorePose))
+                .addPath(new BezierLine(pickup1Pose, scorePose))
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                 .build();
 
-        grabPickup2 =()-> follower.pathBuilder()
-                .addPath(new BezierLine(follower::getPose, new Pose(40.5,60)))
+        grabPickup2 =follower.pathBuilder()
+                .addPath(new BezierLine(scorePose, new Pose(40.5,60)))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,60), this::runIntake, .9)
-                .addPath(new BezierLine(follower::getPose, pickup2Pose))
+                .addPath(new BezierLine(new Pose(40.5,60), pickup2Pose))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(follower::getPose, scorePose))
+                .addPath(new BezierLine(pickup2Pose, scorePose))
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                 .build();
     }
@@ -715,12 +715,12 @@ public class Auto extends LinearOpMode{
 
         VisionPortal.Builder builder = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .addProcessor(aprilTag);
+                .addProcessor(aprilTag).setStreamFormat(VisionPortal.StreamFormat.MJPEG);
         visionportal = builder.build();
     }
 
     private List AprilTagDetection(){
-        String motif = "unfound";
+        String motif = "PPG";
         Pose position = null;
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         for (AprilTagDetection detection: currentDetections) {
@@ -732,7 +732,7 @@ public class Auto extends LinearOpMode{
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES),
                             FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
                 }else{
-                    motif = detection.metadata.name.replace("Obelisk-","");
+                    motif = detection.metadata.name.replace("Obelisk ","");
                 }
 
         }

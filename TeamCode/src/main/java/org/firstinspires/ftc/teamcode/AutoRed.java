@@ -62,7 +62,7 @@ public class AutoRed extends LinearOpMode {
     private final Pose pickup2Pose = new Pose(19.000, 60, Math.toRadians(180)).mirror(); // Middle (Second Set) of Artifacts from the Spike Mark.
     private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private Supplier<PathChain> grabPickup1,  grabPickup2;
+    private PathChain grabPickup1,  grabPickup2;
 
     // possible states for Auto
     int autoState = 1,
@@ -113,7 +113,7 @@ public class AutoRed extends LinearOpMode {
                 case 2:
                     artifactOrder = "PPG";
                     if(!scoring){
-                        follower.followPath(grabPickup1.get());
+                        follower.followPath(grabPickup1);
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -128,7 +128,7 @@ public class AutoRed extends LinearOpMode {
                 case 4:
                     artifactOrder = "PGP";
                     if(!follower.isBusy() && !scoring) {
-                        follower.followPath(grabPickup2.get());
+                        follower.followPath(grabPickup2);
                         autoState++;
                         telemetry.addData("Current action","grabbing artifacts");
                     }
@@ -632,23 +632,23 @@ public class AutoRed extends LinearOpMode {
     }
 
     private void buildPaths() {
-        grabPickup1 =  ()-> follower.pathBuilder()
-                .addPath( new BezierLine(follower::getPose, new Pose(40.5, 84)))
+        grabPickup1 =  follower.pathBuilder()
+                .addPath( new BezierLine(initPos, new Pose(40.5, 84)))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,84), this::runIntake, .9)
-                .addPath( new BezierLine(follower::getPose, pickup1Pose))
+                .addPath( new BezierLine(new Pose(40.5,84), pickup1Pose))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(follower::getPose, scorePose))
+                .addPath(new BezierLine(pickup1Pose, scorePose))
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                 .build();
 
-        grabPickup2 =()-> follower.pathBuilder()
-                .addPath(new BezierLine(follower::getPose, new Pose(40.5,60)))
+        grabPickup2 = follower.pathBuilder()
+                .addPath(new BezierLine(scorePose, new Pose(40.5,60).mirror()))
                 .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                 .addPoseCallback(new Pose(40.5,60), this::runIntake, .9)
-                .addPath(new BezierLine(follower::getPose, pickup2Pose))
+                .addPath(new BezierLine(new Pose(40.5,60).mirror(), pickup2Pose))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(follower::getPose, scorePose))
+                .addPath(new BezierLine(pickup2Pose, scorePose))
                 .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                 .build();
     }
