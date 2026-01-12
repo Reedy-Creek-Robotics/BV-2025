@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 //import com.pedropathing.follower.Follower;
@@ -32,232 +33,93 @@ import java.util.Objects;
 
 @TeleOp(name = "TeleOP Drive with Pedropathing")
 public class TeleOpDrive extends LinearOpMode {
-    private final Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
-    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -90, 0, 0);
-    DcMotor driveFrontLeft, driveFrontRight, driveBackRight, driveBackLeft, outtake, leftIntake, rightIntake;
 
-    Servo transfer, outtakeHammer;
-    IMU imu;
+    DcMotor outtake, transfer;
+
+    Servo trigger;
+
     private Follower follower;
     private Supplier<PathChain> score;
-    ElapsedTime buttonDebounce;
+    ElapsedTime buttonDebounce, scoreDebounce;
 
-    AprilTagProcessor aprilTag;
-    private VisionPortal visionportal;
-
-    private String MOTIFPATTERN;
-    ElapsedTime scoreDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS),
-            intakeDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
-    double
-            intake1 = (double) 295 /1800,
-            intake2 = (double) 424 /1800,
-            intake3 = (double) 547 /1800,
-            outtake2 = (double) 234/1800,
-            outtake1 = (double) 100 /1800,
-            outtake3 = (double) 362 /1800;
-    double triggerFire = (double) 174 /300;
-    double triggerRelease = (double) 229 /300;
-    private boolean scoring = false,
-            intaking = false;
-    private int scoringState=1;
-    private boolean firstClick = false;
-    private int intakeState;
-    private boolean automatedDriving = false;
-
+    final double open = 0,
+                 close =  1;
+    int scoreState = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        MOTIFPATTERN = Auto.MOTIFPATTERN;
-        Pose initPose;
         buttonDebounce = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+        scoreDebounce = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
         initHardware();
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(Auto.endPose);
+        follower.setStartingPose(
+                Auto.endPose != null ? Auto.endPose : new Pose(0, 0, 0)
+        );
 
         createPaths();
         waitForStart();
+        transfer.setPower(.67);
         follower.startTeleopDrive();
         while(opModeIsActive()){
             follower.update();
-            updateScore();
-            processControl();
-            updateIntake();
+            updateDriving();
+            updateScoreState();
+
 
         }
 
     }
+
+    private void updateDriving() {
+        follower.setTeleOpDrive(
+                -gamepad1.left_stick_y,
+                -gamepad1.left_stick_x,
+                -gamepad1.right_stick_x,false);
+        if(gamepad1.xWasPressed()&& buttonDebounce.milliseconds()>250){
+            scoreState = 1;
+            buttonDebounce.reset();
+        }
+        if(gamepad1.aWasPressed()){
+            transfer.setPower(-1);
+        }
+        if(gamepad1.aWasReleased()){
+            transfer.setPower(1);
+        }
+    }
+
+    private void updateScoreState(){
+        switch (scoreState){
+            case 1:
+                trigger.setPosition(open);
+                outtake.setPower(1);
+                scoreState++;
+                break;
+            case 2:
+                if(scoreDebounce.milliseconds()>3000){
+                    trigger.setPosition(close);
+                    scoreState = 0;
+                }
+                break;
+        }
+
+    }
+
     private void initHardware(){
         outtake = hardwareMap.get(DcMotor.class, "outtake");
         outtake.setMode(RUN_WITHOUT_ENCODER);
-        outtake.setZeroPowerBehavior(BRAKE);
+        outtake.setZeroPowerBehavior(FLOAT);
 
-        rightIntake = hardwareMap.get(DcMotor.class, "rightIntake");
-
-        rightIntake.setMode(RUN_WITHOUT_ENCODER);
-
-        leftIntake = hardwareMap.get(DcMotor.class, "leftIntake");
-        leftIntake.setMode(RUN_WITHOUT_ENCODER);
-        leftIntake.setDirection(REVERSE);
-
-        driveFrontLeft = hardwareMap.get(DcMotor.class,  "driveFrontLeft");
-        driveFrontLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontLeft.setMode(RUN_WITHOUT_ENCODER);
-        driveFrontLeft.setZeroPowerBehavior(BRAKE);
-        driveFrontLeft.setDirection(REVERSE);
+        transfer = hardwareMap.get(DcMotor.class, "transfer");
+        transfer.setMode(RUN_WITHOUT_ENCODER);
+        transfer.setZeroPowerBehavior(BRAKE);
+        transfer.setDirection(REVERSE);
 
 
-        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
-        driveFrontRight.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontRight.setMode(RUN_WITHOUT_ENCODER);
-        driveFrontRight.setZeroPowerBehavior(BRAKE);
 
-        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
-        driveBackLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveBackLeft.setMode(RUN_WITHOUT_ENCODER);
-        driveBackLeft.setDirection(REVERSE);
-        driveBackLeft.setZeroPowerBehavior(BRAKE);
+        trigger = hardwareMap.get(Servo.class, "trigger");
 
 
-        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
-        driveBackRight.setMode(STOP_AND_RESET_ENCODER);
-        driveBackRight.setMode(RUN_WITHOUT_ENCODER);
-        driveBackRight.setZeroPowerBehavior(BRAKE);
-
-        outtakeHammer = hardwareMap.get(Servo.class, "outtakeHammer");
-
-        // IMU TODO: replace this with the pinpoint sensor IMU later.
-        imu = hardwareMap.get(IMU.class, "imu");
-        // Adjust the orientation parameters to match your robot
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,
-                RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
-        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-        imu.initialize(parameters);
-
-    }
-    private void processControl() {
-        if(!automatedDriving){
-            follower.setTeleOpDrive(
-                    -gamepad1.left_stick_y,
-                    -gamepad1.left_stick_x,
-                    -gamepad1.right_stick_x,
-                    true // Robot Centric
-            );
-        }
-
-        // now do buttons
-        if(gamepad1.x && buttonDebounce.milliseconds()>250){
-            buttonDebounce.reset();
-            follower.followPath(score.get());
-            scoring=true;
-            firstClick = true;
-            automatedDriving = true;
-        }
-        if(gamepad1.x && buttonDebounce.milliseconds()>250&&firstClick){
-            scoring = false;
-            firstClick = false;
-            scoringState = 1;
-            automatedDriving = false;
-            follower.startTeleopDrive();
-        }
-        if(gamepad1.a){
-            intaking=true;
-        }
-
-
-    }
-
-    private void updateScore() {
-        if(scoring){
-            switch (scoringState){
-                case 1:
-                    outtake.setPower(1);
-                    transfer.setPosition(outtake1);
-                    scoreDelay.reset();
-                    scoringState++;
-                    break;
-                case 2:
-                case 5:
-                case 8:
-                    if(scoreDelay.milliseconds()>50&& !!follower.isBusy()){
-                        outtakeHammer.setPosition(triggerFire);
-                        scoreDelay.reset();
-                        scoringState++;
-                    }
-                    break;
-                case 3:
-                case 6:
-                case 9:
-                    if(scoreDelay.milliseconds()>30){
-                        outtakeHammer.setPosition(triggerFire);
-                        scoreDelay.reset();
-                        scoringState++;
-                    }
-                    break;
-                case 4:
-                    if(scoreDelay.milliseconds()>30){
-                        transfer.setPosition(outtake2);
-                        scoreDelay.reset();
-                        scoringState++;
-                    }
-                    break;
-                case 7:
-                    if( scoreDelay.milliseconds()>30){
-                        transfer.setPosition(outtake3);
-                        scoreDelay.reset();
-                        scoringState++;
-                    }
-                    break;
-                case 10:
-                    scoring=false;
-                    transfer.setPosition(intake1);
-                    outtake.setPower(0);
-                    scoringState = 1;
-                    break;
-            }
-        }
-    }
-
-    private void updateIntake(){
-        if (intaking){
-            switch (intakeState){
-                case 1:
-                    transfer.setPosition(intake1);
-                    rightIntake.setPower(1);
-                    leftIntake.setPower(1);
-                    intakeDelay.reset();
-                    intakeState++;
-                    break;
-                case 2:
-                    if (intakeDelay.milliseconds()>500){
-                        transfer.setPosition(intake2);
-                        intakeDelay.reset();
-                        intakeState++;
-                        intaking = false;
-                    }
-                    break;
-                case 3:
-                    if (intakeDelay.milliseconds()>500){
-                        transfer.setPosition(intake3);
-                        intakeDelay.reset();
-                        intakeState++;
-                        intaking = false;
-                    }
-                    break;
-                case 4:
-                    if (intakeDelay.milliseconds()>500){
-                        scoring = false;
-                        scoringState = 1;
-                        leftIntake.setPower(0);
-                        rightIntake.setPower(0);
-                        intaking = false;
-                    }
-                    break;
-            }
-        }
     }
 
 

@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
-import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_USING_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
-import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
+
+import android.annotation.SuppressLint;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.FTCCoordinates;
@@ -14,15 +15,11 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Supplier;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -33,712 +30,243 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
-@Autonomous(name = "Blue Auto with camera")
-public class Auto extends LinearOpMode{
-    private final Position cameraPosition = new Position(DistanceUnit.INCH,
-            1, 0, 0, 0);
-    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+@Autonomous(name = "Blue Auto Start near goal")
+public  class Auto extends OpMode {
+    DcMotor outtake, transfer;
+    Servo trigger;
+
+    Follower follower;
+
+    private Position cameraPosition = new Position(DistanceUnit.INCH,
+            0, 0, 0, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
-    DcMotor driveFrontLeft, driveFrontRight, driveBackRight, driveBackLeft, outtake, leftIntake, rightIntake;
-    Servo outtakeHammer, transfer;
-    IMU imu;
-    AprilTagProcessor aprilTag;
-    private BuiltinCameraDirection webcamName ;
-    private VisionPortal visionportal;
 
-    public static String MOTIFPATTERN;
+    /**
+     * The variable to store our instance of the AprilTag processor.
+     */
+    private AprilTagProcessor aprilTag;
 
-    //PP
-    private Follower follower;
+    /**
+     * The variable to store our instance of the vision portal.
+     */
+    private VisionPortal visionPortal;
+
+    Pose initPose;
+
     static Pose endPose;
 
-    private Pose initPos;
-    public final Pose scorePose = new Pose(60, 85, Math.toRadians(135)); // Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
-    private final Pose pickup1Pose = new Pose(19.000, 84.000, Math.toRadians(180)); // Highest (First Set) of Artifacts from the Spike Mark.
-    private final Pose pickup2Pose = new Pose(19.000, 60, Math.toRadians(180)); // Middle (Second Set) of Artifacts from the Spike Mark.
-    private final Pose pickup3Pose = new Pose(19.000, 36, Math.toRadians(180)); // Lowest (Third Set) of Artifacts from the Spike Mark.
+    final double open = 0,
+            close =  1;
 
-    private PathChain grabPickup1,  grabPickup2;
+    Paths path;
 
-    // possible states for Auto
-    int autoState = 1,
-        intakeState = 1;
+    ElapsedTime autoTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
-    String artifactOrder = "PPG";
 
-    ElapsedTime scoreDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS),
-               intakeDelay = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
-    double
-            intake1 = (double) 295 /1800,
-            intake2 = (double) 424 /1800,
-            intake3 = (double) 547 /1800,
-            outtake2 = (double) 234/1800,
-            outtake1 = (double) 100 /1800,
-            outtake3 = (double) 362 /1800;
-    double triggerFire = (double) 174 /300;
-    double triggerRelease = (double) 229 /300;
-    private boolean scoring = false,
-            intaking = false;
-
-    int scoringState = 1;
-
+    int autoState = 0;
+    @Override
+    public void init() {
+        initHardware();
+        initPosition();
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(initPose);
+         path = new Paths(follower, initPose);
+    }
 
     @Override
-    public void runOpMode() throws InterruptedException {
-        initHardware();
-        setApriltag();
-        List results= AprilTagDetection();
-        initPos = (Pose) results.get(1);
-        MOTIFPATTERN = results.get(0).toString();
-        visionportal.close();
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(initPos);
-        telemetry.addData("MOTIF",MOTIFPATTERN);
-        buildPaths();
-        waitForStart();
-        transfer.setPosition(0);
-        while(opModeIsActive()){
-            updateIntake();
-            updateScore();
-            follower.update();
-            switch (autoState){
-                case 1:
-                    scoring = true;
-                    autoState++;
-                    telemetry.addData("Current action","scoring");
-                case 2:
-                    if(!scoring){
-                        artifactOrder = "PPG";
-                        follower.followPath(grabPickup1);
-                        autoState++;
-                        telemetry.addData("Current action","grabbing artifacts");
-                    }
-                    break;
-                case 3:
-                    if(!follower.isBusy()){
-                        scoring = true;
-                        autoState++;
-                        telemetry.addData("Current action","scoring");
-                    }
-                    break;
-                case 4:
-                    artifactOrder = "PGP";
-                    if(!follower.isBusy() && !scoring) {
-                        follower.followPath(grabPickup2);
-                        autoState++;
-                        telemetry.addData("Current action","grabbing artifacts");
-                    }
-                    break;
-                case 6:
-                    if(!follower.isBusy()){
-                        scoring = true;
-                        autoState=-1;
-                        telemetry.addData("Current action","scoring");
-                    }
-                    break;
-
-            }
-        endPose=follower.getPose();
-        }
+    public void loop() {
+        follower.update();
+        autoStateHandler();
+        telemetry.addData("Path State", autoState);
+        telemetry.addData("X", follower.getPose().getX());
+        telemetry.addData("Y", follower.getPose().getY());
+        telemetry.addData("Heading", follower.getPose().getHeading());
+        updateTelemetry(telemetry);
+        endPose = follower.getPose();
     }
 
-    private void updateScore() {
-        if(scoring){
-           if(Objects.equals(MOTIFPATTERN, "PPG")){
-               if(Objects.equals(artifactOrder, "PPG")){
-                   switch (scoringState){
-                       case 1:
-                           outtake.setPower(1);
-                           transfer.setPosition(outtake1);
-                           scoreDelay.reset();
-                           scoringState++;
-                           break;
-                       case 2:
-                       case 5:
-                       case 8:
-                           if(scoreDelay.milliseconds()>50){
-                               outtakeHammer.setPosition(triggerFire);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 3:
-                       case 6:
-                       case 9:
-                           if(scoreDelay.milliseconds()>30){
-                               outtakeHammer.setPosition(triggerRelease);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 4:
-                           if(scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake2);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 7:
-                           if( scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake3);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 10:
-                           scoring=false;
-                           transfer.setPosition(intake1);
-                           outtake.setPower(0);
-                           scoringState = 1;
-                           break;
-                   }
-
-
-
-
-               }
-               else if(Objects.equals(artifactOrder, "PGP")){
-                   switch (scoringState){
-                       case 1:
-                           outtake.setPower(1);
-                           transfer.setPosition(outtake1);
-                           scoreDelay.reset();
-                           scoringState++;
-                           break;
-                       case 2:
-                       case 5:
-                       case 8:
-                           if(scoreDelay.milliseconds()>50){
-                               outtakeHammer.setPosition(triggerFire);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 3:
-                       case 6:
-                       case 9:
-                           if(scoreDelay.milliseconds()>30){
-                               outtakeHammer.setPosition(triggerRelease);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 4:
-                           if(scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake3);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 7:
-                           if( scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake2);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 10:
-                           scoring=false;
-                           transfer.setPosition(intake1);
-                           outtake.setPower(0);
-                           scoringState = 1;
-                           break;
-                   }
-               }
-               else if(Objects.equals(artifactOrder, "GPP")){
-                   switch (scoringState){
-                       case 1:
-                           outtake.setPower(1);
-                           transfer.setPosition(outtake3);
-                           scoreDelay.reset();
-                           scoringState++;
-                           break;
-                       case 2:
-                       case 5:
-                       case 8:
-                           if(scoreDelay.milliseconds()>50){
-                               outtakeHammer.setPosition(triggerFire);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 3:
-                       case 6:
-                       case 9:
-                           if(scoreDelay.milliseconds()>30){
-                               outtakeHammer.setPosition(triggerRelease);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 4:
-                           if(scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake2);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 7:
-                           if( scoreDelay.milliseconds()>30){
-                               transfer.setPosition(outtake1);
-                               scoreDelay.reset();
-                               scoringState++;
-                           }
-                           break;
-                       case 10:
-                           scoring=false;
-                           transfer.setPosition(intake1);
-                           outtake.setPower(0);
-                           scoringState = 1;
-                           break;
-                   }
-               }
-           }
-           else if(Objects.equals(MOTIFPATTERN, "PGP")){
-                if(Objects.equals(artifactOrder, "PPG")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake1);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake3);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake2);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-               }
-                else if(Objects.equals(artifactOrder, "PGP")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake1);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake2);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake3);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-
-               }
-                else if(Objects.equals(artifactOrder, "GPP")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake3);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake2);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake1);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-               }
-
-           }
-           else if(Objects.equals(MOTIFPATTERN, "GPP")){
-                if(Objects.equals(artifactOrder, "PPG")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake3);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake2);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake1);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-               }
-                else if(Objects.equals(artifactOrder, "PGP")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake2);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake1);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake3);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-               }
-                else if(Objects.equals(artifactOrder, "GPP")){
-                    switch (scoringState){
-                        case 1:
-                            outtake.setPower(1);
-                            transfer.setPosition(outtake1);
-                            scoreDelay.reset();
-                            scoringState++;
-                            break;
-                        case 2:
-                        case 5:
-                        case 8:
-                            if(scoreDelay.milliseconds()>50){
-                                outtakeHammer.setPosition(triggerFire);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 3:
-                        case 6:
-                        case 9:
-                            if(scoreDelay.milliseconds()>30){
-                                outtakeHammer.setPosition(triggerRelease);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 4:
-                            if(scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake2);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 7:
-                            if( scoreDelay.milliseconds()>30){
-                                transfer.setPosition(outtake3);
-                                scoreDelay.reset();
-                                scoringState++;
-                            }
-                            break;
-                        case 10:
-                            scoring=false;
-                            transfer.setPosition(intake1);
-                            outtake.setPower(0);
-                            scoringState = 1;
-                            break;
-                    }
-               }
-           }
-
-        }
-    }
-    private void updateIntake(){
-        if (intaking){
-            switch (intakeState){
-                case 1:
-                    transfer.setPosition(intake1);
-                    rightIntake.setPower(1);
-                    leftIntake.setPower(1);
-                    intakeDelay.reset();
-                    intakeState++;
-                    break;
-                case 2:
-                    if (intakeDelay.milliseconds()>333){
-                        transfer.setPosition(intake2);
-                        intakeDelay.reset();
-                        intakeState++;
-                    }
-                    break;
-                case 3:
-                    if (intakeDelay.milliseconds()>333){
-                        transfer.setPosition(intake3);
-                        intakeDelay.reset();
-                        intakeState++;
-                    }
-                    break;
-                case 4:
-                    if (intakeDelay.milliseconds()>333){
-                        scoring = false;
-                        scoringState = 1;
-                        leftIntake.setPower(0);
-                        rightIntake.setPower(0);
-                    }
-                    break;
-            }
-        }
-    }
-
-    private void buildPaths() {
-        grabPickup1 =  follower.pathBuilder()
-                .addPath( new BezierLine(initPos, new Pose(40.5, 84)))
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .addPoseCallback(new Pose(40.5,84), this::runIntake, .9)
-                .addPath( new BezierLine(new Pose(40.5, 84), pickup1Pose))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(pickup1Pose, scorePose))
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .build();
-
-        grabPickup2 =follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, new Pose(40.5,60)))
-                .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .addPoseCallback(new Pose(40.5,60), this::runIntake, .9)
-                .addPath(new BezierLine(new Pose(40.5,60), pickup2Pose))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(pickup2Pose, scorePose))
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .build();
-    }
-
-    private void runIntake() {
-        intaking=true;
-    }
-
-    private void initHardware() {
-        transfer = hardwareMap.get(Servo.class, "transfer");
-        outtakeHammer = hardwareMap.get(Servo.class, "outtakeHammer");
-
-        outtake = hardwareMap.get(DcMotor.class, "outtake");
-        outtake.setMode(RUN_WITHOUT_ENCODER);
-        outtake.setZeroPowerBehavior(BRAKE);
-
-        rightIntake = hardwareMap.get(DcMotor.class, "rightIntake");
-        rightIntake.setMode(RUN_WITHOUT_ENCODER);
-
-        leftIntake = hardwareMap.get(DcMotor.class, "leftIntake");
-        leftIntake.setMode(RUN_WITHOUT_ENCODER);
-        leftIntake.setDirection(REVERSE);
-
-
-
-        driveFrontLeft = hardwareMap.get(DcMotor.class, "driveFrontLeft");
-        driveFrontLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontLeft.setMode(RUN_WITHOUT_ENCODER);
-        driveFrontLeft.setZeroPowerBehavior(BRAKE);
-        driveFrontLeft.setDirection(REVERSE);
-
-        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
-        driveFrontRight.setMode(STOP_AND_RESET_ENCODER);
-        driveFrontRight.setMode(RUN_WITHOUT_ENCODER);
-        driveFrontRight.setZeroPowerBehavior(BRAKE);
-
-        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
-        driveBackLeft.setMode(STOP_AND_RESET_ENCODER);
-        driveBackLeft.setMode(RUN_WITHOUT_ENCODER);
-        driveBackLeft.setZeroPowerBehavior(BRAKE);
-        driveBackLeft.setDirection(REVERSE);
-
-        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
-        driveBackRight.setMode(STOP_AND_RESET_ENCODER);
-        driveBackRight.setMode(RUN_WITHOUT_ENCODER);
-        driveBackRight.setZeroPowerBehavior(BRAKE);
-
-
-
-
-
-    }
-
-    private void setApriltag(){
+    @SuppressLint("DefaultLocale")
+    private void initPosition() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setCameraPose(cameraPosition, cameraOrientation)
-
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
                 .setLensIntrinsics(237.835, 237.835, 328.272, 237.727)
-                // ... these parameters are fx, fy, cx, cy.
                 .build();
+        aprilTag.setDecimation(3);
 
-        VisionPortal.Builder builder = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .addProcessor(aprilTag).setStreamFormat(VisionPortal.StreamFormat.MJPEG);
-        visionportal = builder.build();
-    }
+        VisionPortal.Builder builder = new VisionPortal.Builder();
 
-    private List AprilTagDetection(){
-        String motif = "PPG";
-        Pose position = null;
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+        builder.addProcessor(aprilTag);
+        visionPortal = builder.build();
+
+
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        for (AprilTagDetection detection: currentDetections) {
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                 // Only use tags that don't have Obelisk in them
                 if (!detection.metadata.name.contains("Obelisk")) {
-                    position = new Pose(detection.robotPose.getPosition().x,
+                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                            detection.robotPose.getPosition().x,
                             detection.robotPose.getPosition().y,
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES),
+                            detection.robotPose.getPosition().z));
+                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    //Take that above and put it in the follower
+                    initPose=new Pose(detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
                             FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                }else{
-                    motif = detection.metadata.name.replace("Obelisk ","");
+                }
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+            }
+        }
+
+        visionPortal.close();
+
+
+    }
+
+    private void initHardware(){
+        outtake = hardwareMap.get(DcMotor.class, "outtake");
+        outtake.setZeroPowerBehavior(BRAKE);
+        outtake.setMode(RUN_WITHOUT_ENCODER);
+
+        transfer = hardwareMap.get(DcMotor.class,"transfer");
+        transfer.setDirection(REVERSE);
+        transfer.setMode(RUN_WITHOUT_ENCODER);
+        transfer.setZeroPowerBehavior(BRAKE);
+
+        trigger = hardwareMap.get(Servo.class, "trigger");
+    }
+
+    private void autoStateHandler(){
+        switch (autoState){
+            case 0:
+                follower.followPath(path.Score1);
+                autoTimer.reset();
+                autoState++;
+                break;
+            case 1:
+            case 4:
+            case 7:
+                if(!follower.isBusy()){
+                    transfer.setPower(0);
+                    trigger.setPosition(open);
+                    outtake.setPower(1);
+                    autoTimer.reset();
+                    autoState++;
+                }
+                break;
+            case 2:
+            case 5:
+            case 8:
+                if(autoTimer.milliseconds()>3000){
+                    transfer.setPower(.7);
+                    autoState++;
+                    autoTimer.reset();
+                }
+                break;
+            case 3:
+                if(autoTimer.milliseconds()>2000){
+                    outtake.setPower(0);
+                    trigger.setPosition(close);
+                    follower.followPath(path.pickup1);
+                    autoState++;
+                    autoTimer.reset();
+                }
+                break;
+            case 6:
+                if(autoTimer.milliseconds()>2000){
+                    outtake.setPower(0);
+                    trigger.setPosition(close);
+                    follower.followPath(path.pickup2);
+                    autoState++;
+                    autoTimer.reset();
                 }
 
-        }
-        
 
+
+        }
     }
-        return Arrays.asList(motif, position);
+
+    public static class Paths {
+        public PathChain Score1;
+
+        public PathChain pickup1;
+        public PathChain pickup2;
+
+        public Paths(Follower follower, Pose initPose) {
+            Score1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    initPose,
+
+                                    new Pose(67.000, 81.000)
+                            )
+                    ).setLinearHeadingInterpolation(initPose.getHeading(), Math.toRadians(135))
+
+                    .build();
+
+             pickup1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(67.000, 81.000),
+
+                                    new Pose(41.000, 84.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(41.000, 84.000),
+
+                                    new Pose(19.000, 84.000)
+                            )
+                    ).setConstantHeadingInterpolation(180).addPath(
+                             new BezierLine(
+                                     new Pose(19.000, 84.000),
+
+                                     new Pose(67.000, 81.000)
+                             )
+                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
+                    .build();
+
+
+
+            pickup2 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(67.000, 81.000),
+
+                                    new Pose(42.000, 60.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(42.000, 60.000),
+
+                                    new Pose(18.000, 60.000)
+                            )
+                    ).setTangentHeadingInterpolation().addPath(
+                            new BezierLine(
+                                    new Pose(18.000, 60.000),
+
+                                    new Pose(67.000, 81.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
+                    .build();
+        }
     }
+
+
 }
