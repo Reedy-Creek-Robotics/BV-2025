@@ -3,6 +3,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODE
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
+import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.FORWARD;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 //import com.pedropathing.follower.Follower;
@@ -42,9 +43,14 @@ public class TeleOpDrive extends LinearOpMode {
     private Supplier<PathChain> score;
     ElapsedTime buttonDebounce, scoreDebounce;
 
+    final double  hi = 1,
+                  lo = .75;
+
     final double open = 0,
-                 close =  1;
-    int scoreState = 0;
+                 close = 1;
+    int scoreState = -1;
+    private int transferState;
+    private ElapsedTime transferDebounce = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -59,13 +65,12 @@ public class TeleOpDrive extends LinearOpMode {
 
         createPaths();
         waitForStart();
-        transfer.setPower(.67);
-        follower.startTeleopDrive();
+        follower.startTeleopDrive(true);
         while(opModeIsActive()){
             follower.update();
             updateDriving();
             updateScoreState();
-
+            manageTransferState();
 
         }
 
@@ -76,31 +81,61 @@ public class TeleOpDrive extends LinearOpMode {
                 -gamepad1.left_stick_y,
                 -gamepad1.left_stick_x,
                 -gamepad1.right_stick_x,false);
-        if(gamepad1.xWasPressed()&& buttonDebounce.milliseconds()>250){
-            scoreState = 1;
-            buttonDebounce.reset();
-        }
+
+//        if(gamepad1.xWasPressed()&& buttonDebounce.milliseconds()>250){
+//            scoreState = 1;
+//            buttonDebounce.reset();
+//        }
+
         if(gamepad1.aWasPressed()){
             transfer.setPower(-1);
         }
         if(gamepad1.aWasReleased()){
-            transfer.setPower(1);
+            transfer.setPower(0);
         }
+        if(gamepad1.yWasPressed()){
+            transfer.setPower(1);
+        } else if (gamepad1.yWasReleased()) {
+            transferState = 0;
+
+
+        }
+        if(gamepad1.left_bumper){
+            outtake.setPower(lo);
+        } else if (gamepad1.right_bumper) {
+            outtake.setPower(hi);
+        }else{
+            outtake.setPower(0);
+        }
+
     }
 
     private void updateScoreState(){
         switch (scoreState){
             case 1:
                 trigger.setPosition(open);
+                transfer.setPower(0);
                 outtake.setPower(1);
+                scoreDebounce.reset();
                 scoreState++;
                 break;
             case 2:
-                if(scoreDebounce.milliseconds()>3000){
-                    trigger.setPosition(close);
-                    scoreState = 0;
-                }
+                if(scoreDebounce.milliseconds()>1200){
+                    transfer.setPower(1);
+                    scoreDebounce.reset();
+                    scoreState++;
+
                 break;
+                }
+            case 3:
+                if(scoreDebounce.milliseconds()>3000){
+                    outtake.setPower(0);
+                    trigger.setPosition(close);
+                    scoreState=0;
+
+
+                } break;
+
         }
 
     }
@@ -113,7 +148,7 @@ public class TeleOpDrive extends LinearOpMode {
         transfer = hardwareMap.get(DcMotor.class, "transfer");
         transfer.setMode(RUN_WITHOUT_ENCODER);
         transfer.setZeroPowerBehavior(BRAKE);
-        transfer.setDirection(REVERSE);
+        transfer.setDirection(FORWARD);
 
 
 
@@ -129,4 +164,20 @@ public class TeleOpDrive extends LinearOpMode {
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
                 .build();
      }
+
+    private void manageTransferState(){
+        switch (transferState){
+            case 0:
+                transfer.setPower(-1);
+                transferState++;
+                transferDebounce.reset();
+                break;
+            case 1:
+                if(transferDebounce.milliseconds()>10){
+                    transfer.setPower(0);
+                    transferState = -1;
+                }
+                break;
+        }
+    }
 }

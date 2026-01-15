@@ -6,6 +6,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
+import android.util.Size;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.FTCCoordinates;
@@ -40,7 +41,7 @@ public  class AutoRedFar extends OpMode {
     Follower follower;
 
     private Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
+            9, 0, 0, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
@@ -94,7 +95,7 @@ public  class AutoRedFar extends OpMode {
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
-                .setLensIntrinsics(237.835, 237.835, 328.272, 237.727)
+                .setLensIntrinsics(595.3753019, 597.10100376, 952.227276, 488.29700937)
                 .build();
         aprilTag.setDecimation(3);
 
@@ -102,6 +103,8 @@ public  class AutoRedFar extends OpMode {
 
         builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTag);
+        builder.setCameraResolution(new Size(1920, 1080));
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
         visionPortal = builder.build();
 
 

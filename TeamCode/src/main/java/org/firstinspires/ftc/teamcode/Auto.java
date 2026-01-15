@@ -4,8 +4,10 @@ import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODE
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
+import static com.sun.tools.doclint.Entity.not;
 
 import android.annotation.SuppressLint;
+import android.util.Size;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.FTCCoordinates;
@@ -40,7 +42,7 @@ public  class Auto extends OpMode {
     Follower follower;
 
     private Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
+            9, 0, 0, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
@@ -72,8 +74,54 @@ public  class Auto extends OpMode {
         initHardware();
         initPosition();
         follower = Constants.createFollower(hardwareMap);
+        follower.setPose(new Pose(0,0,0));
+
+    }
+
+    @Override
+    public void init_loop() {
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+            for (AprilTagDetection detection : currentDetections) {
+                if (detection.metadata != null) {
+                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                    // Only use tags that don't have Obelisk in them
+                    if (!detection.metadata.name.contains("Obelisk")) {
+                        telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                                detection.robotPose.getPosition().x,
+                                detection.robotPose.getPosition().y,
+                                detection.robotPose.getPosition().z));
+                        telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                                detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                                detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                                detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                        //Take that above and put it in the follower
+                        initPose=new Pose(detection.robotPose.getPosition().x,
+                                detection.robotPose.getPosition().y,
+                                detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
+                                FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+                        follower.setPose(initPose);
+                        telemetry.addData("pedropathing place", initPose);
+                        telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
+                    }
+                } else {
+                    telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                    telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+
+
+                }
+
+        }
+        path = new Paths(follower, initPose);
+            updateTelemetry(telemetry);
+            telemetry.addLine(path.pickup1.toString());
+
+    }
+
+    @Override
+    public void start() {
         follower.setStartingPose(initPose);
-         path = new Paths(follower, initPose);
+
     }
 
     @Override
@@ -95,7 +143,7 @@ public  class Auto extends OpMode {
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
-                .setLensIntrinsics(237.835, 237.835, 328.272, 237.727)
+                .setLensIntrinsics(595.3753019, 597.10100376, 952.227276, 488.29700937)
                 .build();
         aprilTag.setDecimation(3);
 
@@ -103,39 +151,18 @@ public  class Auto extends OpMode {
 
         builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTag);
+        builder.setCameraResolution(new Size(1920, 1080));
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
         visionPortal = builder.build();
 
 
-        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
 
+
+        initPose = new Pose(0,0,0);
         // Step through the list of detections and display info for each one.
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                // Only use tags that don't have Obelisk in them
-                if (!detection.metadata.name.contains("Obelisk")) {
-                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                            detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getPosition().z));
-                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
-                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                    //Take that above and put it in the follower
-                    initPose=new Pose(detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
-                            FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                }
-            } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-            }
-        }
 
-        visionPortal.close();
+
+
 
 
     }
@@ -166,7 +193,7 @@ public  class Auto extends OpMode {
                 if(!follower.isBusy()){
                     transfer.setPower(0);
                     trigger.setPosition(open);
-                    outtake.setPower(1);
+                    outtake.setPower(.75  );
                     autoTimer.reset();
                     autoState++;
                 }

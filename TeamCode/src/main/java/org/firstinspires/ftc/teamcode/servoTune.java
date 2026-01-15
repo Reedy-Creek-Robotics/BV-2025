@@ -33,7 +33,8 @@ public class servoTune extends LinearOpMode {
             }
             telemetry.addData("transfer pos", i);
             updateTelemetry(telemetry);
-            transfer.setPosition((double) i /1800);
+            transfer.setPosition((double) i /300);
+
             if(gamepad1.a){
                 motor.setPower(gamepad1.right_trigger);
             }else{
