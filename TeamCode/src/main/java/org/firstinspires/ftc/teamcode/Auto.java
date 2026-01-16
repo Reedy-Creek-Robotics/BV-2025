@@ -7,6 +7,7 @@ import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 import static com.sun.tools.doclint.Entity.not;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.util.Size;
 
 import com.pedropathing.follower.Follower;
@@ -14,6 +15,7 @@ import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.PedroCoordinates;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -60,7 +62,7 @@ public  class Auto extends OpMode {
 
     static Pose endPose;
 
-    final double open = 0,
+    final double open = 0.85,
             close =  1;
 
     Paths path;
@@ -74,66 +76,80 @@ public  class Auto extends OpMode {
         initHardware();
         initPosition();
         follower = Constants.createFollower(hardwareMap);
-        follower.setPose(new Pose(0,0,0));
+        initPose  = new Pose(32,144-8.75,0);
+        follower.setStartingPose(initPose);
+
+        path = new Paths(follower,initPose);
 
     }
 
-    @Override
-    public void init_loop() {
+    public Pose robotPose() {
+        Pose robotPose = null;
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
-            for (AprilTagDetection detection : currentDetections) {
-                if (detection.metadata != null) {
-                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                    // Only use tags that don't have Obelisk in them
-                    if (!detection.metadata.name.contains("Obelisk")) {
-                        telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                                detection.robotPose.getPosition().x,
-                                detection.robotPose.getPosition().y,
-                                detection.robotPose.getPosition().z));
-                        telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
-                                detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
-                                detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
-                                detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                        //Take that above and put it in the follower
-                        initPose=new Pose(detection.robotPose.getPosition().x,
-                                detection.robotPose.getPosition().y,
-                                detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
-                                FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                        follower.setPose(initPose);
-                        telemetry.addData("pedropathing place", initPose);
-                        telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
-                    }
-                } else {
-                    telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                    telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-
-
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                // Only use tags that don't have Obelisk in them
+                if (!detection.metadata.name.contains("Obelisk")) {
+                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                            detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getPosition().z));
+                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    //Take that above and put it in the follower
+                    robotPose=new Pose(detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
+                            FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+                    follower.setPose(initPose);
+                    telemetry.addData("pedropathing place", initPose);
+                    telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
+//
                 }
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+
+
+            }
 
         }
-        path = new Paths(follower, initPose);
-            updateTelemetry(telemetry);
-            telemetry.addLine(path.pickup1.toString());
+
+        updateTelemetry(telemetry);
+        telemetry.addLine(path.pickup1.toString());
+        return robotPose;
 
     }
 
     @Override
     public void start() {
-        follower.setStartingPose(initPose);
-
+        follower.setStartingPose(robotPose());
+        path = new Paths(follower, robotPose());
+        Log.println(Log.DEBUG, "automode", "start");
+        Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
+        Log.println(Log.DEBUG, "automode", String.valueOf(path.initPose));
     }
 
     @Override
     public void loop() {
         follower.update();
         autoStateHandler();
+        follower.update();
         telemetry.addData("Path State", autoState);
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("isbusy", follower.isBusy());
         updateTelemetry(telemetry);
         endPose = follower.getPose();
+        Pose pose  = robotPose();
+        if(pose!= null){
+            //follower.setPose(pose);
+        }
     }
 
     @SuppressLint("DefaultLocale")
@@ -154,11 +170,6 @@ public  class Auto extends OpMode {
         builder.setCameraResolution(new Size(1920, 1080));
         builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
         visionPortal = builder.build();
-
-
-
-
-        initPose = new Pose(0,0,0);
         // Step through the list of detections and display info for each one.
 
 
@@ -190,10 +201,11 @@ public  class Auto extends OpMode {
             case 1:
             case 4:
             case 7:
-                if(!follower.isBusy()){
+                if(!follower.isBusy()&& autoTimer.milliseconds()>5000){
+                    Log.println(Log.DEBUG, "automode", "running");
                     transfer.setPower(0);
                     trigger.setPosition(open);
-                    outtake.setPower(.75  );
+                    outtake.setPower(.75);
                     autoTimer.reset();
                     autoState++;
                 }
@@ -236,7 +248,9 @@ public  class Auto extends OpMode {
         public PathChain pickup1;
         public PathChain pickup2;
 
+        public Pose initPose;
         public Paths(Follower follower, Pose initPose) {
+             this.initPose = initPose;
             Score1 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     initPose,

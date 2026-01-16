@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_USING_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
@@ -17,6 +18,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -35,7 +37,8 @@ import java.util.Objects;
 @TeleOp(name = "TeleOP Drive with Pedropathing")
 public class TeleOpDrive extends LinearOpMode {
 
-    DcMotor outtake, transfer;
+    DcMotor outtake;
+    DcMotor transfer;
 
     Servo trigger;
 
@@ -51,6 +54,7 @@ public class TeleOpDrive extends LinearOpMode {
     int scoreState = -1;
     private int transferState;
     private ElapsedTime transferDebounce = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+    private boolean transferIsMoving = false;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -89,23 +93,37 @@ public class TeleOpDrive extends LinearOpMode {
 
         if(gamepad1.aWasPressed()){
             transfer.setPower(-1);
+            transferIsMoving = true;
         }
         if(gamepad1.aWasReleased()){
+            transferIsMoving=false;
+        }
+        if(!transferIsMoving){
             transfer.setPower(0);
         }
         if(gamepad1.yWasPressed()){
             transfer.setPower(1);
-        } else if (gamepad1.yWasReleased()) {
-            transferState = 0;
-
-
+            transferIsMoving = true;
         }
+        if (gamepad1.yWasReleased()){
+            transferState = 0;
+        }
+
+
         if(gamepad1.left_bumper){
-            outtake.setPower(lo);
+            outtake.setPower(1);
+            transferIsMoving = true;
+
+
         } else if (gamepad1.right_bumper) {
-            outtake.setPower(hi);
+            outtake.setPower(lo);
+            transferIsMoving = true;
+
         }else{
             outtake.setPower(0);
+        }
+        if(gamepad1.leftBumperWasReleased() ||gamepad1.rightBumperWasReleased()){
+            transferIsMoving = false;
         }
 
     }
@@ -142,7 +160,7 @@ public class TeleOpDrive extends LinearOpMode {
 
     private void initHardware(){
         outtake = hardwareMap.get(DcMotor.class, "outtake");
-        outtake.setMode(RUN_WITHOUT_ENCODER);
+        outtake.setMode(RUN_USING_ENCODER);
         outtake.setZeroPowerBehavior(FLOAT);
 
         transfer = hardwareMap.get(DcMotor.class, "transfer");
@@ -168,14 +186,16 @@ public class TeleOpDrive extends LinearOpMode {
     private void manageTransferState(){
         switch (transferState){
             case 0:
-                transfer.setPower(-1);
-                transferState++;
-                transferDebounce.reset();
+                    transfer.setPower(-1);
+                    transferState++;
+                    transferDebounce.reset();
+
                 break;
             case 1:
-                if(transferDebounce.milliseconds()>10){
+                if(transferDebounce.milliseconds()>90){
                     transfer.setPower(0);
                     transferState = -1;
+                    transferIsMoving = false;
                 }
                 break;
         }
