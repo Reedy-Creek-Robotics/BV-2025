@@ -14,7 +14,6 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.PedroCoordinates;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -37,7 +36,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 @Autonomous(name = "Red Auto Start near goal")
-public  class AutoRed extends OpMode {
+public  class AutoRedFar extends OpMode {
     DcMotor outtake, transfer;
     Servo trigger;
 
@@ -129,10 +128,10 @@ public  class AutoRed extends OpMode {
     @Override
     public void start() {
         follower.setPose(robotPose());
-        path = new Paths(follower);
+
         Log.println(Log.DEBUG, "automode", "start");
         Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
-        Log.println(Log.DEBUG, "automode", String.valueOf(path.initPose));
+
     }
 
     @Override
@@ -193,116 +192,103 @@ public  class AutoRed extends OpMode {
     }
 
     private void autoStateHandler(){
-        switch (autoState){
+        switch (autoState) {
             case 0:
-                follower.followPath(path.Score1.get());
-                autoTimer.reset();
-                autoState++;
+            case 3:
+            case 6:
+                if(!follower.isBusy()) {
+                    outtake.setPower(1);
+                    transfer.setPower(0);
+                    trigger.setPosition(close);
+                    autoTimer.reset();
+                    autoState++;
+                }
                 break;
             case 1:
             case 4:
             case 7:
-                if(!follower.isBusy()){
-                    Log.println(Log.DEBUG, "automode", "running");
-                    transfer.setPower(0);
+                if(autoTimer.milliseconds()>3000){
+                    transfer.setPower(.7);
                     trigger.setPosition(open);
-                    outtake.setPower(.75);
                     autoTimer.reset();
                     autoState++;
                 }
                 break;
             case 2:
+                if(autoTimer.milliseconds()>2000){
+                    trigger.setPosition(close);
+                    outtake.setPower(0);
+                    follower.followPath(path.pickup1.get());
+                    autoState++;
+                }
+                break;
             case 5:
-            case 8:
-                if(autoTimer.milliseconds()>3000){
-                    transfer.setPower(.7);
-                    autoState++;
-                    autoTimer.reset();
-                }
-                break;
-            case 3:
                 if(autoTimer.milliseconds()>2000){
-                    outtake.setPower(0);
                     trigger.setPosition(close);
-                    follower.followPath(path.pickup1);
-                    autoState++;
-                    autoTimer.reset();
-                }
-                break;
-            case 6:
-                if(autoTimer.milliseconds()>2000){
                     outtake.setPower(0);
-                    trigger.setPosition(close);
                     follower.followPath(path.pickup2);
                     autoState++;
-                    autoTimer.reset();
                 }
-
-
+                break;
 
         }
     }
 
     public static class Paths {
-        public Supplier<PathChain> Score1;
+        public Supplier<PathChain> pickup1;
 
-        public PathChain pickup1;
         public PathChain pickup2;
 
-        public Pose initPose;
+
         public Paths(Follower follower) {
-            Score1 = () ->follower.pathBuilder() //Lazy Curve Generation
-                    .addPath(new Path(new BezierLine(follower::getPose, new Pose(67, 81).mirror())))
-                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), .8))
+            pickup1 = ()->follower.pathBuilder().addPath(
+                            new BezierLine(follower::getPose
+                                    ,
+
+                                    new Pose(42.000, 36.000).mirror()
+                            )
+                    ).setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(0), .8)).addPath(
+                            new BezierLine(
+                                    new Pose(42.000, 36.000).mirror(),
+
+                                    new Pose(18.000, 36.000).mirror()
+                            )
+                    ).setConstantHeadingInterpolation(Math.toRadians(0)).addPath(
+                            new BezierLine(
+                                    new Pose(18.000, 36.000).mirror(),
+
+                                    new Pose(60.000, 12.000).mirror()
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(69))
+
                     .build();
-
-            pickup1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(67.000, 81.000).mirror(),
-
-                                    new Pose(41.000, 84.000).mirror()
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(0))
-                    .addPath(
-                            new BezierLine(
-                                    new Pose(41.000, 84.000).mirror(),
-
-                                    new Pose(19.000, 84.000).mirror()
-                            )
-                    ).setConstantHeadingInterpolation(180).addPath(
-                            new BezierLine(
-                                    new Pose(19.000, 84.000).mirror(),
-
-                                    new Pose(67.000, 81.000).mirror()
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
-                    .build();
-
 
 
             pickup2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(67.000, 81.000).mirror(),
+                                    new Pose(60.000, 12.000).mirror(),
 
                                     new Pose(42.000, 60.000).mirror()
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(0))
-                    .addPath(
+                    ).setLinearHeadingInterpolation(Math.toRadians(69), Math.toRadians(0)).addPath(
                             new BezierLine(
                                     new Pose(42.000, 60.000).mirror(),
 
                                     new Pose(18.000, 60.000).mirror()
                             )
-                    ).setTangentHeadingInterpolation().addPath(
+                    ).setConstantHeadingInterpolation(Math.toRadians(0)).addPath(
                             new BezierLine(
                                     new Pose(18.000, 60.000).mirror(),
 
-                                    new Pose(67.000, 81.000).mirror()
+                                    new Pose(60.000, 12.000).mirror()
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(69))
                     .build();
         }
     }
 
 
 }
+
+
+
