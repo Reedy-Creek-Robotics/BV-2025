@@ -2,10 +2,10 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.util.Size;
 
 import com.pedropathing.follower.Follower;
@@ -13,6 +13,7 @@ import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.PedroCoordinates;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -32,17 +33,18 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+import java.util.function.Supplier;
 
-@Autonomous(name = "Red Auto Start near back Triangle")
+@Autonomous(name = "Red Auto Start near goal")
 public  class AutoRedFar extends OpMode {
     DcMotor outtake, transfer;
     Servo trigger;
 
     Follower follower;
 
-    private Position cameraPosition = new Position(DistanceUnit.INCH,
+    private final Position cameraPosition = new Position(DistanceUnit.INCH,
             9, 0, 0, 0);
-    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
     /**
@@ -57,8 +59,9 @@ public  class AutoRedFar extends OpMode {
 
     Pose initPose;
 
+    static Pose endPose;
 
-    final double open = 0,
+    final double open = 0.85,
             close =  1;
 
     Paths path;
@@ -72,20 +75,81 @@ public  class AutoRedFar extends OpMode {
         initHardware();
         initPosition();
         follower = Constants.createFollower(hardwareMap);
+        initPose  = new Pose(32,144-8.75,0);
         follower.setStartingPose(initPose);
-        path = new Paths(follower, initPose);
+
+        path = new Paths(follower);
+
+    }
+
+    @SuppressLint("DefaultLocale")
+    public Pose robotPose() {
+        Pose robotPose = null;
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                // Only use tags that don't have Obelisk in them
+                if (!detection.metadata.name.contains("Obelisk")) {
+                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                            detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getPosition().z));
+                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    //Take that above and put it in the follower
+                    robotPose=new Pose(detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
+                            FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+                    follower.setPose(initPose);
+                    telemetry.addData("pedropathing place", initPose);
+                    telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
+//
+                }
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+
+
+            }
+
+        }
+
+        updateTelemetry(telemetry);
+        telemetry.addLine(path.pickup1.toString());
+        return robotPose;
+
+    }
+
+    @Override
+    public void start() {
+        follower.setPose(robotPose());
+
+        Log.println(Log.DEBUG, "automode", "start");
+        Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
+
     }
 
     @Override
     public void loop() {
         follower.update();
         autoStateHandler();
+        follower.update();
         telemetry.addData("Path State", autoState);
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("isbusy", follower.isBusy());
         updateTelemetry(telemetry);
-        Auto.endPose = follower.getPose();
+        endPose = follower.getPose();
+        Pose pose  = robotPose();
+        if(pose!= null){
+            follower.setPose(pose);
+        }
     }
 
     @SuppressLint("DefaultLocale")
@@ -106,38 +170,10 @@ public  class AutoRedFar extends OpMode {
         builder.setCameraResolution(new Size(1920, 1080));
         builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
         visionPortal = builder.build();
-
-
-        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
-
         // Step through the list of detections and display info for each one.
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                // Only use tags that don't have Obelisk in them
-                if (!detection.metadata.name.contains("Obelisk")) {
-                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                            detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getPosition().z));
-                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
-                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                    //Take that above and put it in the follower
-                    initPose=new Pose(detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
-                            FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                }
-            } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-            }
-        }
 
-        visionPortal.close();
+
+
 
 
     }
@@ -182,7 +218,7 @@ public  class AutoRedFar extends OpMode {
                 if(autoTimer.milliseconds()>2000){
                     trigger.setPosition(close);
                     outtake.setPower(0);
-                    follower.followPath(path.pickup1);
+                    follower.followPath(path.pickup1.get());
                     autoState++;
                 }
                 break;
@@ -199,19 +235,19 @@ public  class AutoRedFar extends OpMode {
     }
 
     public static class Paths {
-        public PathChain pickup1;
+        public Supplier<PathChain> pickup1;
 
         public PathChain pickup2;
 
 
-        public Paths(Follower follower, Pose initPose) {
-            pickup1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    initPose,
+        public Paths(Follower follower) {
+            pickup1 = ()->follower.pathBuilder().addPath(
+                            new BezierLine(follower::getPose
+                                    ,
 
                                     new Pose(42.000, 36.000).mirror()
                             )
-                    ).setLinearHeadingInterpolation(initPose.getHeading(), Math.toRadians(0)).addPath(
+                    ).setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(0), .8)).addPath(
                             new BezierLine(
                                     new Pose(42.000, 36.000).mirror(),
 
@@ -238,7 +274,7 @@ public  class AutoRedFar extends OpMode {
                             new BezierLine(
                                     new Pose(42.000, 60.000).mirror(),
 
-                                    new Pose(18.000, 60.000)
+                                    new Pose(18.000, 60.000).mirror()
                             )
                     ).setConstantHeadingInterpolation(Math.toRadians(0)).addPath(
                             new BezierLine(
@@ -253,3 +289,6 @@ public  class AutoRedFar extends OpMode {
 
 
 }
+
+
+

@@ -2,9 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
-import static com.sun.tools.doclint.Entity.not;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
@@ -15,6 +13,7 @@ import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.PedroCoordinates;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 
@@ -35,6 +34,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Autonomous(name = "Blue Auto Start near goal")
 public  class Auto extends OpMode {
@@ -43,9 +43,9 @@ public  class Auto extends OpMode {
 
     Follower follower;
 
-    private Position cameraPosition = new Position(DistanceUnit.INCH,
+    private final Position cameraPosition = new Position(DistanceUnit.INCH,
             9, 0, 0, 0);
-    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
     /**
@@ -79,10 +79,11 @@ public  class Auto extends OpMode {
         initPose  = new Pose(32,144-8.75,0);
         follower.setStartingPose(initPose);
 
-        path = new Paths(follower,initPose);
+        path = new Paths(follower);
 
     }
 
+    @SuppressLint("DefaultLocale")
     public Pose robotPose() {
         Pose robotPose = null;
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
@@ -127,8 +128,8 @@ public  class Auto extends OpMode {
 
     @Override
     public void start() {
-        follower.setStartingPose(robotPose());
-        path = new Paths(follower, robotPose());
+        follower.setPose(robotPose());
+        path = new Paths(follower);
         Log.println(Log.DEBUG, "automode", "start");
         Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
         Log.println(Log.DEBUG, "automode", String.valueOf(path.initPose));
@@ -148,7 +149,7 @@ public  class Auto extends OpMode {
         endPose = follower.getPose();
         Pose pose  = robotPose();
         if(pose!= null){
-            //follower.setPose(pose);
+            follower.setPose(pose);
         }
     }
 
@@ -194,14 +195,14 @@ public  class Auto extends OpMode {
     private void autoStateHandler(){
         switch (autoState){
             case 0:
-                follower.followPath(path.Score1);
+                follower.followPath(path.Score1.get());
                 autoTimer.reset();
                 autoState++;
                 break;
             case 1:
             case 4:
             case 7:
-                if(!follower.isBusy()&& autoTimer.milliseconds()>5000){
+                if(!follower.isBusy()){
                     Log.println(Log.DEBUG, "automode", "running");
                     transfer.setPower(0);
                     trigger.setPosition(open);
@@ -243,22 +244,16 @@ public  class Auto extends OpMode {
     }
 
     public static class Paths {
-        public PathChain Score1;
+        public Supplier<PathChain> Score1;
 
         public PathChain pickup1;
         public PathChain pickup2;
 
         public Pose initPose;
-        public Paths(Follower follower, Pose initPose) {
-             this.initPose = initPose;
-            Score1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    initPose,
-
-                                    new Pose(67.000, 81.000)
-                            )
-                    ).setLinearHeadingInterpolation(initPose.getHeading(), Math.toRadians(135))
-
+        public Paths(Follower follower) {
+            Score1 = () ->follower.pathBuilder() //Lazy Curve Generation
+                    .addPath(new Path(new BezierLine(follower::getPose, new Pose(67, 81))))
+                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(135), 0.8))
                     .build();
 
              pickup1 = follower.pathBuilder().addPath(
