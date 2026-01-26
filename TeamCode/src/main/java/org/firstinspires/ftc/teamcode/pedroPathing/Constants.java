@@ -45,9 +45,9 @@ public class Constants {
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(.02, 0, .001,.6,.01));
 
 
-    public static PathConstraints pathConstraints = new PathConstraints(0.99,
+    public static PathConstraints pathConstraints = new PathConstraints(1,
             100,
-            .95,
+            .85,
             1);
 
     public static Follower createFollower(HardwareMap hardwareMap) {

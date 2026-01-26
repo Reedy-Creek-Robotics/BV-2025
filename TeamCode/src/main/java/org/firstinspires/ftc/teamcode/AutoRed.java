@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.FORWARD;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
@@ -106,7 +107,7 @@ public  class AutoRed extends OpMode {
                             detection.robotPose.getPosition().y,
                             detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
                             FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                    follower.setPose(initPose);
+                    //follower.setPose(initPose);
                     telemetry.addData("pedropathing place", initPose);
                     telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
 //
@@ -128,7 +129,7 @@ public  class AutoRed extends OpMode {
 
     @Override
     public void start() {
-        follower.setPose(robotPose());
+        follower.setPose(new Pose(144-26,144-16, Math.toRadians(180)));
         path = new Paths(follower);
         Log.println(Log.DEBUG, "automode", "start");
         Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
@@ -185,7 +186,7 @@ public  class AutoRed extends OpMode {
         outtake.setMode(RUN_WITHOUT_ENCODER);
 
         transfer = hardwareMap.get(DcMotor.class,"transfer");
-        transfer.setDirection(REVERSE);
+        transfer.setDirection(FORWARD);
         transfer.setMode(RUN_WITHOUT_ENCODER);
         transfer.setZeroPowerBehavior(BRAKE);
 

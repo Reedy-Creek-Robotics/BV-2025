@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_USING_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.FORWARD;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
@@ -17,15 +19,21 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -33,276 +41,248 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;
 
-@Autonomous(name = "Blue Auto Start near goal")
+@Autonomous(name = "all Autos")
 public  class Auto extends OpMode {
-    DcMotor outtake, transfer;
+    DcMotorEx outtake;
+    DcMotor transfer;
     Servo trigger;
 
     Follower follower;
 
-    private final Position cameraPosition = new Position(DistanceUnit.INCH,
-            9, 0, 0, 0);
-    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -90, 0, 0);
+    IMU imu;
 
-    /**
-     * The variable to store our instance of the AprilTag processor.
-     */
-    private AprilTagProcessor aprilTag;
+    Limelight3A limelight;
 
-    /**
-     * The variable to store our instance of the vision portal.
-     */
-    private VisionPortal visionPortal;
-
-    Pose initPose;
-
-    static Pose endPose;
-
-    final double open = 0.85,
-            close =  1;
-
-    Paths path;
-
+    int autoState=0;
     ElapsedTime autoTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
+    int close=0, open=180/300;
 
-    int autoState = 0;
+    AutoPaths path;
+
+    int PathFollowing;
+    /*
+    * 1=blue near goal
+    * 2=blue far triangle
+    * 3=red near goal
+    * 4=red far triangle
+    */
+
+
     @Override
     public void init() {
         initHardware();
-        initPosition();
-        follower = Constants.createFollower(hardwareMap);
-        initPose  = new Pose(32,144-8.75,0);
-        follower.setStartingPose(initPose);
-
-        path = new Paths(follower);
-
+        follower=Constants.createFollower(hardwareMap);
+        limelight.start();
     }
 
-    @SuppressLint("DefaultLocale")
-    public Pose robotPose() {
-        Pose robotPose = null;
-        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        telemetry.addData("# AprilTags Detected", currentDetections.size());
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                // Only use tags that don't have Obelisk in them
-                if (!detection.metadata.name.contains("Obelisk")) {
-                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                            detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getPosition().z));
-                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
-                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                    //Take that above and put it in the follower
-                    robotPose=new Pose(detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS),
-                            FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                    follower.setPose(initPose);
-                    telemetry.addData("pedropathing place", initPose);
-                    telemetry.addLine(String.valueOf(follower.poseTracker.getPose()));
-//
+    @Override
+    public void init_loop() {
+        Pose botPose = robotPose();
+        if (botPose!=null) {
+            follower.setStartingPose(botPose);
+            if (botPose.getX() < 72){
+                if(botPose.getY()>72){
+                    PathFollowing=1;
+                }else{
+                    PathFollowing=2;
                 }
-            } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-
-
+            }else{
+                if(botPose.getY()>72){
+                    PathFollowing=3;
+                }else{
+                    PathFollowing=4;
+                }
             }
-
         }
-
-        updateTelemetry(telemetry);
-        telemetry.addLine(path.pickup1.toString());
-        return robotPose;
-
     }
 
     @Override
     public void start() {
-        follower.setPose(robotPose());
-        path = new Paths(follower);
-        Log.println(Log.DEBUG, "automode", "start");
-        Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
-        Log.println(Log.DEBUG, "automode", String.valueOf(path.initPose));
+        limelight.pause();
+        if(PathFollowing==1){
+             path = new AutoPaths.BlueNearGoal(follower);
+        } else if (PathFollowing==2) {
+            path =new AutoPaths.BlueFarTriangle(follower);
+        } else if (PathFollowing==3) {
+            path  = new AutoPaths.RedNearGoal(follower);
+        }else{
+            path = new AutoPaths.RedFarTriangle(follower);
+        }
     }
 
     @Override
     public void loop() {
         follower.update();
-        autoStateHandler();
-        follower.update();
-        telemetry.addData("Path State", autoState);
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("isbusy", follower.isBusy());
+        if(PathFollowing==1||PathFollowing==3){
+            autoStateHandlerNear();
+        }else{
+            autoStateHandlerFar();
+        }
+        manageTelemetry();
         updateTelemetry(telemetry);
-        endPose = follower.getPose();
-        Pose pose  = robotPose();
-        if(pose!= null){
-            follower.setPose(pose);
+
+
+    }
+    @Override
+    public void stop() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("LastPose.csv"))) {
+            // Header (recommended)
+
+
+            // Data row
+            writer.write(
+                    follower.getPose().getX() + "," +
+                            follower.getPose().getY() + "," +
+                            follower.getPose().getHeading()
+            );
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @SuppressLint("DefaultLocale")
-    private void initPosition() {
-        aprilTag = new AprilTagProcessor.Builder()
-                .setCameraPose(cameraPosition, cameraOrientation)
-                // == CAMERA CALIBRATION ==
-                // If you do not manually specify calibration parameters, the SDK will attempt
-                // to load a predefined calibration for your camera.
-                .setLensIntrinsics(595.3753019, 597.10100376, 952.227276, 488.29700937)
-                .build();
-        aprilTag.setDecimation(3);
-
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-
-        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
-        builder.addProcessor(aprilTag);
-        builder.setCameraResolution(new Size(1920, 1080));
-        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
-        visionPortal = builder.build();
-        // Step through the list of detections and display info for each one.
-
-
-
-
-
-    }
-
     private void initHardware(){
-        outtake = hardwareMap.get(DcMotor.class, "outtake");
-        outtake.setZeroPowerBehavior(BRAKE);
-        outtake.setMode(RUN_WITHOUT_ENCODER);
+        outtake = hardwareMap.get(DcMotorEx.class, "outtake");
+        outtake.setMode(RUN_USING_ENCODER);
 
-        transfer = hardwareMap.get(DcMotor.class,"transfer");
-        transfer.setDirection(REVERSE);
+        transfer = hardwareMap.get(DcMotor.class, "transfer");
+        transfer.setDirection(FORWARD);
         transfer.setMode(RUN_WITHOUT_ENCODER);
         transfer.setZeroPowerBehavior(BRAKE);
 
-        trigger = hardwareMap.get(Servo.class, "trigger");
+        trigger = hardwareMap.get(Servo.class,"trigger");
+
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.pipelineSwitch(0);
+
+        imu.initialize(
+                new IMU.Parameters(
+                        new RevHubOrientationOnRobot(
+                                RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
+                                RevHubOrientationOnRobot.UsbFacingDirection.UP
+                        )
+                )
+        );
+
+
     }
 
-    private void autoStateHandler(){
+    private  String escape(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            value = value.replace("\"", "\"\"");
+            return "\"" + value + "\"";
+        }
+        return value;
+    }
+
+    private Pose robotPose(){
+        YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
+        limelight.updateRobotOrientation(orientation.getYaw(AngleUnit.DEGREES));
+        LLResult result = limelight.getLatestResult();
+        if(result!=null&& result.isValid()){
+            Pose3D robotPose = result.getBotpose_MT2();
+            return new Pose(robotPose.getPosition().x, robotPose.getPosition().y, robotPose.getOrientation().getYaw(AngleUnit.RADIANS), FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+        }
+        return null;
+    }
+
+
+    private void autoStateHandlerFar(){
         switch (autoState){
             case 0:
-                follower.followPath(path.Score1.get());
+                outtake.setVelocity(28*100);
                 autoTimer.reset();
                 autoState++;
                 break;
             case 1:
-            case 4:
-            case 7:
-                if(!follower.isBusy()){
-                    Log.println(Log.DEBUG, "automode", "running");
-                    transfer.setPower(0);
+                if(autoTimer.milliseconds()>3000){
                     trigger.setPosition(open);
-                    outtake.setPower(.75);
+                    transfer.setPower(1);
+                    autoState++;
+                    autoTimer.reset();
+                }
+                break;
+            case 2:
+                if(autoTimer.milliseconds()>2500){
+                    trigger.setPosition(close);
+                    follower.followPath(path.pickup1);
+                    autoState++;
+                }
+                break;
+            case 3:
+            case 5:
+                if(!follower.isBusy()){
+                    trigger.setPosition(open);
+                    autoTimer.reset();
+                    autoState++;
+                }
+                break;
+            case 4:
+                if(autoTimer.milliseconds()>2500){
+                    trigger.setPosition(close);
+                    follower.followPath(path.pickup2);
+                    autoState++;
+                }
+                break;
+
+
+        }
+    }
+
+    private void autoStateHandlerNear(){
+        switch (autoState){
+            case 0:
+                outtake.setVelocity(28*95);
+                follower.followPath(path.score1);
+                autoState++;
+                autoTimer.reset();
+                break;
+            case 1:
+                if(!follower.isBusy()&&autoTimer.milliseconds()>3000){
+                    transfer.setPower(1);
+                    trigger.setPosition(open);
                     autoTimer.reset();
                     autoState++;
                 }
                 break;
             case 2:
-            case 5:
-            case 8:
-                if(autoTimer.milliseconds()>3000){
-                    transfer.setPower(.7);
-                    autoState++;
-                    autoTimer.reset();
-                }
-                break;
-            case 3:
-                if(autoTimer.milliseconds()>2000){
-                    outtake.setPower(0);
+                if(autoTimer.milliseconds()>2500){
                     trigger.setPosition(close);
                     follower.followPath(path.pickup1);
                     autoState++;
-                    autoTimer.reset();
                 }
                 break;
-            case 6:
-                if(autoTimer.milliseconds()>2000){
-                    outtake.setPower(0);
+            case 3:
+            case 5:
+                if(!follower.isBusy()){
+                    transfer.setPower(1);
+                    trigger.setPosition(open);
+                    autoTimer.reset();
+                    autoState++;
+                }
+                break;
+            case 4:
+                if(autoTimer.milliseconds()>2500){
                     trigger.setPosition(close);
                     follower.followPath(path.pickup2);
                     autoState++;
-                    autoTimer.reset();
                 }
-
-
+                break;
 
         }
     }
 
-    public static class Paths {
-        public Supplier<PathChain> Score1;
+    private void manageTelemetry(){
+        telemetry.addData("Path State", autoState);
+        telemetry.addData("Path following ", PathFollowing);
+        telemetry.addData("Pose", follower.getPose());
 
-        public PathChain pickup1;
-        public PathChain pickup2;
-
-        public Pose initPose;
-        public Paths(Follower follower) {
-            Score1 = () ->follower.pathBuilder() //Lazy Curve Generation
-                    .addPath(new Path(new BezierLine(follower::getPose, new Pose(67, 81))))
-                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(135), 0.8))
-                    .build();
-
-             pickup1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(67.000, 81.000),
-
-                                    new Pose(41.000, 84.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                    .addPath(
-                            new BezierLine(
-                                    new Pose(41.000, 84.000),
-
-                                    new Pose(19.000, 84.000)
-                            )
-                    ).setConstantHeadingInterpolation(180).addPath(
-                             new BezierLine(
-                                     new Pose(19.000, 84.000),
-
-                                     new Pose(67.000, 81.000)
-                             )
-                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                    .build();
-
-
-
-            pickup2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(67.000, 81.000),
-
-                                    new Pose(42.000, 60.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                    .addPath(
-                            new BezierLine(
-                                    new Pose(42.000, 60.000),
-
-                                    new Pose(18.000, 60.000)
-                            )
-                    ).setTangentHeadingInterpolation().addPath(
-                            new BezierLine(
-                                    new Pose(18.000, 60.000),
-
-                                    new Pose(67.000, 81.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                    .build();
-        }
     }
-
-
 }

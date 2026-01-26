@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.FORWARD;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
@@ -184,7 +185,7 @@ public  class AutoBlueFar extends OpMode {
         outtake.setMode(RUN_WITHOUT_ENCODER);
 
         transfer = hardwareMap.get(DcMotor.class,"transfer");
-        transfer.setDirection(REVERSE);
+        transfer.setDirection(FORWARD);
         transfer.setMode(RUN_WITHOUT_ENCODER);
         transfer.setZeroPowerBehavior(BRAKE);
 
