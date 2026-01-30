@@ -64,7 +64,7 @@ public  class Auto extends OpMode {
 
     int close=0, open=180/300;
 
-    AutoPaths path;
+    AutoPaths.RedNearGoal path;
 
     int PathFollowing;
     /*
@@ -79,72 +79,78 @@ public  class Auto extends OpMode {
     public void init() {
         initHardware();
         follower=Constants.createFollower(hardwareMap);
-        limelight.start();
+       follower.setStartingPose( new Pose(117, 136, Math.toRadians(180)));
+        //limelight.start();
     }
 
-    @Override
-    public void init_loop() {
-        Pose botPose = robotPose();
-        if (botPose!=null) {
-            follower.setStartingPose(botPose);
-            if (botPose.getX() < 72){
-                if(botPose.getY()>72){
-                    PathFollowing=1;
-                }else{
-                    PathFollowing=2;
-                }
-            }else{
-                if(botPose.getY()>72){
-                    PathFollowing=3;
-                }else{
-                    PathFollowing=4;
-                }
-            }
-        }
-    }
+   // @Override
+//    public void init_loop() {
+//        Pose botPose = new Pose(144-27,144-8, Math.toRadians(180));
+//        if (botPose!=null) {
+//
+//            if (botPose.getX() < 72){
+//                if(botPose.getY()>72){
+//                    PathFollowing=3;
+//                }else{
+//                    PathFollowing=4;
+//                }
+//            }else{
+//                if(botPose.getY()>72){
+//                    PathFollowing=1;
+//                }else{
+//                    PathFollowing=2;
+//                }
+//            }
+//        }
+//    }
 
     @Override
     public void start() {
-        limelight.pause();
-        if(PathFollowing==1){
-             path = new AutoPaths.BlueNearGoal(follower);
-        } else if (PathFollowing==2) {
-            path =new AutoPaths.BlueFarTriangle(follower);
-        } else if (PathFollowing==3) {
-            path  = new AutoPaths.RedNearGoal(follower);
-        }else{
-            path = new AutoPaths.RedFarTriangle(follower);
-        }
+//        limelight.pause();
+////        if(PathFollowing==1){
+//             path = new AutoPaths.BlueNearGoal(follower);
+//        } else if (PathFollowing==2) {
+//            path =new AutoPaths.BlueFarTriangle(follower);
+//        } else if (PathFollowing==3) {
+//            path  = new AutoPaths.RedNearGoal(follower);
+//        }else{
+//            path = new AutoPaths.RedFarTriangle(follower);
+//        }
+        path = new AutoPaths.RedNearGoal(follower);
+        follower.setStartingPose(new Pose(144-27,144-8, Math.toRadians(180)));
+        follower.setPose(new Pose(144-27,144-8, Math.toRadians(180)));
+        path = new AutoPaths.RedNearGoal(follower);
     }
 
     @Override
     public void loop() {
         follower.update();
-        if(PathFollowing==1||PathFollowing==3){
+        if(true){
             autoStateHandlerNear();
         }else{
-            autoStateHandlerFar();
+//            autoStateHandlerFar();
         }
         manageTelemetry();
         updateTelemetry(telemetry);
+        Log.println(Log.DEBUG,"auto", path.getClass().toString() );
 
 
     }
     @Override
     public void stop() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("LastPose.csv"))) {
-            // Header (recommended)
-
-
-            // Data row
-            writer.write(
-                    follower.getPose().getX() + "," +
-                            follower.getPose().getY() + "," +
-                            follower.getPose().getHeading()
-            );
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        try (BufferedWriter writer = new BufferedWriter(new FileWriter("LastPose.csv"))) {
+//            // Header (recommended)
+//
+//
+//            // Data row
+//            writer.write(
+//                    follower.getPose().getX() + "," +
+//                            follower.getPose().getY() + "," +
+//                            follower.getPose().getHeading()
+//            );
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     private void initHardware(){
@@ -158,17 +164,10 @@ public  class Auto extends OpMode {
 
         trigger = hardwareMap.get(Servo.class,"trigger");
 
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(0);
+//        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+//        limelight.pipelineSwitch(0);
 
-        imu.initialize(
-                new IMU.Parameters(
-                        new RevHubOrientationOnRobot(
-                                RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
-                                RevHubOrientationOnRobot.UsbFacingDirection.UP
-                        )
-                )
-        );
+
 
 
     }
@@ -182,65 +181,65 @@ public  class Auto extends OpMode {
         return value;
     }
 
-    private Pose robotPose(){
+    /* private Pose robotPose(){
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         limelight.updateRobotOrientation(orientation.getYaw(AngleUnit.DEGREES));
         LLResult result = limelight.getLatestResult();
         if(result!=null&& result.isValid()){
-            Pose3D robotPose = result.getBotpose_MT2();
-            return new Pose(robotPose.getPosition().x, robotPose.getPosition().y, robotPose.getOrientation().getYaw(AngleUnit.RADIANS), FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+            Pose3D robotPose = result.getBotpose();
+            return new Pose(robotPose.getPosition().x+72, robotPose.getPosition().y+72, robotPose.getOrientation().getYaw(AngleUnit.RADIANS));
         }
         return null;
-    }
+    }*/
 
 
-    private void autoStateHandlerFar(){
-        switch (autoState){
-            case 0:
-                outtake.setVelocity(28*100);
-                autoTimer.reset();
-                autoState++;
-                break;
-            case 1:
-                if(autoTimer.milliseconds()>3000){
-                    trigger.setPosition(open);
-                    transfer.setPower(1);
-                    autoState++;
-                    autoTimer.reset();
-                }
-                break;
-            case 2:
-                if(autoTimer.milliseconds()>2500){
-                    trigger.setPosition(close);
-                    follower.followPath(path.pickup1);
-                    autoState++;
-                }
-                break;
-            case 3:
-            case 5:
-                if(!follower.isBusy()){
-                    trigger.setPosition(open);
-                    autoTimer.reset();
-                    autoState++;
-                }
-                break;
-            case 4:
-                if(autoTimer.milliseconds()>2500){
-                    trigger.setPosition(close);
-                    follower.followPath(path.pickup2);
-                    autoState++;
-                }
-                break;
-
-
-        }
-    }
+//    private void autoStateHandlerFar(){
+//        switch (autoState){
+//            case 0:
+//                outtake.setVelocity(28*100);
+//                autoTimer.reset();
+//                autoState++;
+//                break;
+//            case 1:
+//                if(autoTimer.milliseconds()>3000){
+//                    trigger.setPosition(open);
+//                    transfer.setPower(1);
+//                    autoState++;
+//                    autoTimer.reset();
+//                }
+//                break;
+//            case 2:
+//                if(autoTimer.milliseconds()>2500){
+//                    trigger.setPosition(close);
+//                    follower.followPath(path.pickup1);
+//                    autoState++;
+//                }
+//                break;
+//            case 3:
+//            case 5:
+//                if(!follower.isBusy()){
+//                    trigger.setPosition(open);
+//                    autoTimer.reset();
+//                    autoState++;
+//                }
+//                break;
+//            case 4:
+//                if(autoTimer.milliseconds()>2500){
+//                    trigger.setPosition(close);
+//                    follower.followPath(path.pickup2);
+//                    autoState++;
+//                }
+//                break;
+//
+//
+//        }
+//    }
 
     private void autoStateHandlerNear(){
         switch (autoState){
             case 0:
                 outtake.setVelocity(28*95);
-                follower.followPath(path.score1);
+                follower.followPath((PathChain) path.Score1);
                 autoState++;
                 autoTimer.reset();
                 break;

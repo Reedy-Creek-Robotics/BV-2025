@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 public class AutoPaths{
     PathChain pickup1;
     PathChain pickup2;
-    PathChain score1;
+    PathChain Score1;
 public static class BlueNearGoal  extends AutoPaths{
     public Supplier<PathChain> Score1;
 
@@ -74,16 +74,16 @@ public static class BlueNearGoal  extends AutoPaths{
 }
 
 public static class RedNearGoal extends AutoPaths{
-        public Supplier<PathChain> Score1;
+        public PathChain Score1;
 
         public PathChain pickup1;
         public PathChain pickup2;
 
         public Pose initPose;
         public RedNearGoal(Follower follower) {
-            Score1 = () ->follower.pathBuilder() //Lazy Curve Generation
-                    .addPath(new Path(new BezierLine(follower::getPose, new Pose(67, 81).mirror())))
-                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), .8))
+            Score1 = follower.pathBuilder() //Lazy Curve Generation
+                    .addPath(new Path(new BezierLine(new Pose(144-27,144-8, Math.toRadians(180)), new Pose(67, 81).mirror())))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(45), .8)
                     .build();
 
             pickup1 = follower.pathBuilder().addPath(
@@ -215,7 +215,6 @@ public static class RedFarTriangle extends AutoPaths{
                                 new Pose(60.000, 12.000).mirror()
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(69))
-
                 .build();
 
 
