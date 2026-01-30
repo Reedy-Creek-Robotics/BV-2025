@@ -32,6 +32,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Objects;
 
 @TeleOp(name = "TeleOP Drive with Pedropathing")
@@ -43,11 +46,11 @@ public class TeleOpDrive extends LinearOpMode {
     Servo trigger;
 
     private Follower follower;
-    private Supplier<PathChain> score;
+    private Supplier<PathChain> scoreBlue,scoreRed;
     ElapsedTime buttonDebounce, scoreDebounce;
 
     final double  hi = 1,
-                  lo = .75;
+                  lo = .55;
 
     final double open = 0,
                  close = 1;
@@ -55,6 +58,7 @@ public class TeleOpDrive extends LinearOpMode {
     private int transferState;
     private ElapsedTime transferDebounce = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     private boolean transferIsMoving = false;
+    private boolean automatedDriving=false;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -63,9 +67,7 @@ public class TeleOpDrive extends LinearOpMode {
         initHardware();
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(
-                Auto.endPose != null ? Auto.endPose : new Pose(0, 0, 0)
-        );
+        follower.setStartingPose(readPose("LastPose.csv"));
 
         createPaths();
         waitForStart();
@@ -74,57 +76,58 @@ public class TeleOpDrive extends LinearOpMode {
             follower.update();
             updateDriving();
             updateScoreState();
-            manageTransferState();
+
 
         }
 
     }
 
     private void updateDriving() {
-        follower.setTeleOpDrive(
-                -gamepad1.left_stick_y,
-                -gamepad1.left_stick_x,
-                -gamepad1.right_stick_x,false);
+        if(!automatedDriving) {
+            follower.setTeleOpDrive(
+                    -gamepad1.left_stick_y,
+                    -gamepad1.left_stick_x,
+                    -gamepad1.right_stick_x, false);
+        }
 
-//        if(gamepad1.xWasPressed()&& buttonDebounce.milliseconds()>250){
-//            scoreState = 1;
-//            buttonDebounce.reset();
-//        }
+        if(gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72){
+            follower.followPath(scoreBlue.get());
+            automatedDriving=false;
+        } else if (gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72) {
+            follower.followPath(scoreRed.get());
+            automatedDriving=false;
+        }
+
+        if (automatedDriving && (gamepad1.bWasPressed() || !follower.isBusy())) {
+            follower.startTeleopDrive(true);
+            automatedDriving = false;
+        }
 
         if(gamepad1.aWasPressed()){
             transfer.setPower(-1);
-            transferIsMoving = true;
+
         }
         if(gamepad1.aWasReleased()){
-            transferIsMoving=false;
-        }
-        if(!transferIsMoving){
             transfer.setPower(0);
         }
+
         if(gamepad1.yWasPressed()){
             transfer.setPower(1);
-            transferIsMoving = true;
         }
         if (gamepad1.yWasReleased()){
-            transferState = 0;
+            transfer.setPower(0);
         }
 
 
         if(gamepad1.left_bumper){
             outtake.setPower(1);
-            transferIsMoving = true;
-
-
         } else if (gamepad1.right_bumper) {
             outtake.setPower(lo);
-            transferIsMoving = true;
 
         }else{
             outtake.setPower(0);
         }
-        if(gamepad1.leftBumperWasReleased() ||gamepad1.rightBumperWasReleased()){
-            transferIsMoving = false;
-        }
+
 
     }
 
@@ -177,9 +180,13 @@ public class TeleOpDrive extends LinearOpMode {
 
 
     private void createPaths(){
-        score = () -> follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, new Pose(45, 98))))
-                .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
+         scoreBlue = () -> follower.pathBuilder() //Lazy Curve Generation
+                .addPath(new Path(new BezierLine(follower::getPose, follower.getPose())))
+                .setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(11, 135)))
+                .build();
+        scoreRed  = () -> follower.pathBuilder() //Lazy Curve Generation
+                .addPath(new Path(new BezierLine(follower::getPose, follower.getPose())))
+                .setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(11, 135).mirror()))
                 .build();
      }
 
@@ -198,6 +205,36 @@ public class TeleOpDrive extends LinearOpMode {
                     transferIsMoving = false;
                 }
                 break;
+        }
+    }
+
+
+    private Pose readPose(String filename) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+
+            String line = reader.readLine();
+
+            // Empty file → default Pose
+            if (line == null || line.isBlank()) {
+                return new Pose(0, 0, 0);
+            }
+
+            String[] parts = line.split(",", -1);
+
+            // If not exactly 3 values, return default
+            if (parts.length != 3) {
+                return new Pose(0, 0, 0);
+            }
+
+            double n1 = Double.parseDouble(parts[0].trim());
+            double n2 = Double.parseDouble(parts[1].trim());
+            double n3 = Double.parseDouble(parts[2].trim());
+
+            return new Pose(n1, n2, n3);
+
+        } catch (IOException | NumberFormatException e) {
+            // Any IO error or invalid number → default Pose
+            return new Pose(0, 0, 0);
         }
     }
 }

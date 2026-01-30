@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_WITHOUT_ENCODER;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.FORWARD;
 import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 
 import android.annotation.SuppressLint;
@@ -35,7 +36,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.function.Supplier;
 
-@Autonomous(name = "Red Auto Start near goal")
+@Autonomous(name = "Red Auto Start near back triangle")
 public  class AutoRedFar extends OpMode {
     DcMotor outtake, transfer;
     Servo trigger;
@@ -127,7 +128,7 @@ public  class AutoRedFar extends OpMode {
 
     @Override
     public void start() {
-        follower.setPose(robotPose());
+        follower.setPose(new Pose(144-26,144-16, Math.toRadians(180)));
 
         Log.println(Log.DEBUG, "automode", "start");
         Log.println(Log.DEBUG, "automode", String.valueOf(robotPose()));
@@ -146,10 +147,10 @@ public  class AutoRedFar extends OpMode {
         telemetry.addData("isbusy", follower.isBusy());
         updateTelemetry(telemetry);
         endPose = follower.getPose();
-        Pose pose  = robotPose();
-        if(pose!= null){
-            follower.setPose(pose);
-        }
+//        Pose pose  = robotPose();
+//        if(pose!= null){
+//            follower.setPose(pose);
+//        }
     }
 
     @SuppressLint("DefaultLocale")
@@ -184,7 +185,7 @@ public  class AutoRedFar extends OpMode {
         outtake.setMode(RUN_WITHOUT_ENCODER);
 
         transfer = hardwareMap.get(DcMotor.class,"transfer");
-        transfer.setDirection(REVERSE);
+        transfer.setDirection(FORWARD);
         transfer.setMode(RUN_WITHOUT_ENCODER);
         transfer.setZeroPowerBehavior(BRAKE);
 
@@ -208,7 +209,7 @@ public  class AutoRedFar extends OpMode {
             case 4:
             case 7:
                 if(autoTimer.milliseconds()>3000){
-                    transfer.setPower(.7);
+                    transfer.setPower(0);
                     trigger.setPosition(open);
                     autoTimer.reset();
                     autoState++;
