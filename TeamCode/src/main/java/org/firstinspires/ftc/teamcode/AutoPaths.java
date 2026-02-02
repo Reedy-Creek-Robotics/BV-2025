@@ -12,87 +12,26 @@ public class AutoPaths{
     PathChain pickup1;
     PathChain pickup2;
     PathChain Score1;
-public static class BlueNearGoal  extends AutoPaths{
-    public Supplier<PathChain> Score1;
-
-    public PathChain pickup1;
-    public PathChain pickup2;
-
-    public Pose initPose;
-    public BlueNearGoal(Follower follower) {
-        Score1 = () ->follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, new Pose(67, 81))))
-                .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(135), 0.8))
-                .build();
-
-        pickup1 = follower.pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(67.000, 81.000),
-
-                                new Pose(41.000, 84.000)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .addPath(
-                        new BezierLine(
-                                new Pose(41.000, 84.000),
-
-                                new Pose(19.000, 84.000)
-                        )
-                ).setConstantHeadingInterpolation(180).addPath(
-                        new BezierLine(
-                                new Pose(19.000, 84.000),
-
-                                new Pose(67.000, 81.000)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .build();
-
-
-
-        pickup2 = follower.pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(67.000, 81.000),
-
-                                new Pose(42.000, 60.000)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
-                .addPath(
-                        new BezierLine(
-                                new Pose(42.000, 60.000),
-
-                                new Pose(18.000, 60.000)
-                        )
-                ).setTangentHeadingInterpolation().addPath(
-                        new BezierLine(
-                                new Pose(18.000, 60.000),
-
-                                new Pose(67.000, 81.000)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
-                .build();
-    }
-}
-
-public static class RedNearGoal extends AutoPaths{
+    public static class BlueNearGoal extends AutoPaths{
         public PathChain Score1;
 
         public PathChain pickup1;
         public PathChain pickup2;
 
         public Pose initPose;
-        public RedNearGoal(Follower follower) {
+        public BlueNearGoal(Follower follower) {
             Score1 = follower.pathBuilder() //Lazy Curve Generation
-                    .addPath(new Path(new BezierLine(new Pose(144-27,144-8, Math.toRadians(180)), new Pose(67, 81).mirror())))
+                    .addPath(new Path(new BezierLine(new Pose(144-27,144-8, Math.toRadians(180)), new Pose(50, 100).mirror())))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(45), .8)
                     .build();
 
             pickup1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(67.000, 81.000).mirror(),
+                                    new Pose(50, 100).mirror(),
 
                                     new Pose(41.000, 84.000).mirror()
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(0))
+                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(180),.7)
                     .addPath(
                             new BezierLine(
                                     new Pose(41.000, 84.000).mirror(),
@@ -130,6 +69,67 @@ public static class RedNearGoal extends AutoPaths{
                                     new Pose(67.000, 81.000).mirror()
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .build();
+        }
+    }
+
+public static class RedNearGoal extends AutoPaths{
+        public Supplier<PathChain> Score1;
+
+        public PathChain pickup1;
+        public PathChain pickup2;
+
+        public Pose initPose;
+        public RedNearGoal(Follower follower) {
+            Score1 =()-> follower.pathBuilder() //Lazy Curve Generation
+                    .addPath(new BezierLine(follower::getPose, new Pose(44, 99).mirror()))
+                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45),.8))
+                    .build();
+
+            pickup1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(44, 99).mirror(),
+
+                                    new Pose(46, 84.000).mirror()
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(0))
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(46, 84.000).mirror(),
+
+                                    new Pose(15, 84.000).mirror()
+                            )
+                    ).setConstantHeadingInterpolation(0).addPath(
+                            new BezierLine(
+                                    new Pose(15, 84.000).mirror(),
+
+                                    new Pose(44, 99).mirror()
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
+                    .build();
+
+
+
+            pickup2 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(44, 99).mirror(),
+
+                                    new Pose(46, 60.000).mirror()
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(0))
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(15, 60.000).mirror(),
+
+                                    new Pose(15, 60.000).mirror()
+                            )
+                    ).setTangentHeadingInterpolation().addPath(
+                            new BezierLine(
+                                    new Pose(15, 60.000).mirror(),
+
+                                    new Pose(44, 99).mirror()
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
                     .build();
         }
     }

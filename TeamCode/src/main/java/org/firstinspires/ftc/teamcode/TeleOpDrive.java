@@ -97,7 +97,9 @@ public class TeleOpDrive extends LinearOpMode {
 //            follower.followPath(scoreRed.get());
 //            automatedDriving=false;
 //        }
-
+        if(gamepad1.start){
+            follower.startTeleopDrive(true);
+        }
 
         if(gamepad1.aWasPressed()){
             transfer.setPower(-1);

@@ -80,29 +80,29 @@ public  class Auto extends OpMode {
         initHardware();
         follower=Constants.createFollower(hardwareMap);
        follower.setStartingPose( new Pose(117, 136, Math.toRadians(180)));
-        //limelight.start();
+        limelight.start();
     }
 
-   // @Override
-//    public void init_loop() {
-//        Pose botPose = new Pose(144-27,144-8, Math.toRadians(180));
-//        if (botPose!=null) {
-//
-//            if (botPose.getX() < 72){
-//                if(botPose.getY()>72){
-//                    PathFollowing=3;
-//                }else{
-//                    PathFollowing=4;
-//                }
-//            }else{
-//                if(botPose.getY()>72){
-//                    PathFollowing=1;
-//                }else{
-//                    PathFollowing=2;
-//                }
-//            }
-//        }
-//    }
+    @Override
+    public void init_loop() {
+        Pose botPose = new Pose(144-27,144-8, Math.toRadians(180));
+        if (botPose!=null) {
+
+            if (botPose.getX() < 72){
+                if(botPose.getY()>72){
+                    PathFollowing=3;
+                }else{
+                    PathFollowing=4;
+                }
+            }else{
+                if(botPose.getY()>72){
+                    PathFollowing=1;
+                }else{
+                    PathFollowing=2;
+                }
+            }
+        }
+    }
 
     @Override
     public void start() {
@@ -238,8 +238,8 @@ public  class Auto extends OpMode {
     private void autoStateHandlerNear(){
         switch (autoState){
             case 0:
-                outtake.setVelocity(28*95);
-                follower.followPath((PathChain) path.Score1);
+                outtake.setVelocity(28*55);
+                follower.followPath(path.Score1.get());
                 autoState++;
                 autoTimer.reset();
                 break;
@@ -253,6 +253,7 @@ public  class Auto extends OpMode {
                 break;
             case 2:
                 if(autoTimer.milliseconds()>2500){
+                    transfer.setPower(.3);
                     trigger.setPosition(close);
                     follower.followPath(path.pickup1);
                     autoState++;
@@ -270,6 +271,7 @@ public  class Auto extends OpMode {
             case 4:
                 if(autoTimer.milliseconds()>2500){
                     trigger.setPosition(close);
+                    transfer.setPower(.3);
                     follower.followPath(path.pickup2);
                     autoState++;
                 }
