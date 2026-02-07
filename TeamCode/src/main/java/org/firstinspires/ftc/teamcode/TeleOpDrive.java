@@ -83,24 +83,22 @@ public class TeleOpDrive extends LinearOpMode {
     }
 
     private void updateDriving() {
-        if(!automatedDriving) {
+
             follower.setTeleOpDrive(
                     -gamepad1.left_stick_y,
                     -gamepad1.left_stick_x,
                     -gamepad1.right_stick_x, false);
-        }
 
-        if(gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72){
-            follower.followPath(scoreBlue.get());
-            automatedDriving=false;
-        } else if (gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72) {
-            follower.followPath(scoreRed.get());
-            automatedDriving=false;
-        }
 
-        if (automatedDriving && (gamepad1.bWasPressed() || !follower.isBusy())) {
+//        if(gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72){
+//            follower.followPath(scoreBlue.get());
+//            automatedDriving=false;
+//        } else if (gamepad1.xWasPressed()&&readPose("LastPose.csv").getX()<72) {
+//            follower.followPath(scoreRed.get());
+//            automatedDriving=false;
+//        }
+        if(gamepad1.start){
             follower.startTeleopDrive(true);
-            automatedDriving = false;
         }
 
         if(gamepad1.aWasPressed()){
